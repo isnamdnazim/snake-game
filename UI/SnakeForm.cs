@@ -234,18 +234,105 @@ internal sealed class SnakeForm : Form
             return;
         }
 
-        var index = 0;
-        foreach (var segment in _engine.SnakeSegments)
+        var segments = _engine.SnakeSegments.ToList();
+        if (segments.Count == 0)
         {
-            var rect = CellBounds(segment, 3);
-            var color = index == 0
-                ? Color.FromArgb(70, 210, 100)
-                : Color.FromArgb(46, 175, 84);
-
-            using var brush = new SolidBrush(color);
-            g.FillRoundedRectangle(brush, rect, 6);
-            index++;
+            return;
         }
+
+        using (var bodyPen = new Pen(Color.FromArgb(42, 162, 78), _settings.CellSize * 0.52f)
+        {
+            StartCap = LineCap.Round,
+            EndCap = LineCap.Round
+        })
+        {
+            for (var i = 0; i < segments.Count - 1; i++)
+            {
+                var from = CellCenter(segments[i]);
+                var to = CellCenter(segments[i + 1]);
+                g.DrawLine(bodyPen, from, to);
+            }
+        }
+
+        for (var i = segments.Count - 1; i >= 1; i--)
+        {
+            var segment = segments[i];
+            var inset = i == segments.Count - 1 ? 6 : 4;
+            var rect = CellBounds(segment, inset);
+            using var brush = new SolidBrush(Color.FromArgb(46, 175, 84));
+            g.FillEllipse(brush, rect);
+        }
+
+        DrawHead(g, segments);
+    }
+
+    private void DrawHead(Graphics g, IReadOnlyList<GridPoint> segments)
+    {
+        var head = segments[0];
+        var rect = CellBounds(head, 2);
+
+        using (var headBrush = new SolidBrush(Color.FromArgb(78, 220, 108)))
+        {
+            g.FillEllipse(headBrush, rect);
+        }
+
+        using (var outlinePen = new Pen(Color.FromArgb(36, 128, 62), 1.2f))
+        {
+            g.DrawEllipse(outlinePen, rect);
+        }
+
+        var headDirection = GetHeadDirection(segments);
+        var center = CellCenter(head);
+        var eyeDistance = _settings.CellSize * 0.13f;
+        var eyeRadius = Math.Max(2f, _settings.CellSize * 0.08f);
+        var eyeForwardOffset = _settings.CellSize * 0.16f;
+
+        var (fx, fy, px, py) = headDirection switch
+        {
+            Direction.Up => (0f, -1f, 1f, 0f),
+            Direction.Down => (0f, 1f, -1f, 0f),
+            Direction.Left => (-1f, 0f, 0f, -1f),
+            _ => (1f, 0f, 0f, 1f)
+        };
+
+        var eye1 = new PointF(
+            center.X + fx * eyeForwardOffset + px * eyeDistance,
+            center.Y + fy * eyeForwardOffset + py * eyeDistance);
+        var eye2 = new PointF(
+            center.X + fx * eyeForwardOffset - px * eyeDistance,
+            center.Y + fy * eyeForwardOffset - py * eyeDistance);
+
+        using var eyeBrush = new SolidBrush(Color.FromArgb(28, 28, 28));
+        g.FillEllipse(eyeBrush, eye1.X - eyeRadius, eye1.Y - eyeRadius, eyeRadius * 2, eyeRadius * 2);
+        g.FillEllipse(eyeBrush, eye2.X - eyeRadius, eye2.Y - eyeRadius, eyeRadius * 2, eyeRadius * 2);
+    }
+
+    private Direction GetHeadDirection(IReadOnlyList<GridPoint> segments)
+    {
+        if (segments.Count < 2)
+        {
+            return Direction.Right;
+        }
+
+        var head = segments[0];
+        var neck = segments[1];
+
+        if (head.X > neck.X)
+        {
+            return Direction.Right;
+        }
+
+        if (head.X < neck.X)
+        {
+            return Direction.Left;
+        }
+
+        if (head.Y < neck.Y)
+        {
+            return Direction.Up;
+        }
+
+        return Direction.Down;
     }
 
     private void DrawHud(Graphics g, int yStart)
@@ -274,6 +361,13 @@ internal sealed class SnakeForm : Form
         var y = point.Y * _settings.CellSize + inset;
         var size = _settings.CellSize - inset * 2;
         return new Rectangle(x, y, size, size);
+    }
+
+    private PointF CellCenter(GridPoint point)
+    {
+        var x = point.X * _settings.CellSize + _settings.CellSize / 2f;
+        var y = point.Y * _settings.CellSize + _settings.CellSize / 2f;
+        return new PointF(x, y);
     }
 }
 #endif
