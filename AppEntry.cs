@@ -14,7 +14,12 @@ internal static class Program
         IRandomProvider randomProvider = new SystemRandomProvider();
         IFoodSpawner foodSpawner = new FoodSpawner(randomProvider);
         ISnakeGameEngine engine = new SnakeGameEngine(settings, foodSpawner);
+        var dataPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "SnakeGame",
+            "highscore.json");
+        IHighScoreStore highScoreStore = new FileHighScoreStore(dataPath);
 
-        Application.Run(new SnakeForm(engine, settings));
+        Application.Run(new SnakeForm(engine, settings, highScoreStore));
     }
 }
