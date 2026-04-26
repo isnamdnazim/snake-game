@@ -1,3 +1,4 @@
+#if false
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
@@ -405,3 +406,4 @@ internal static class GraphicsExtensions
         graphics.FillPath(brush, path);
     }
 }
+#endif
