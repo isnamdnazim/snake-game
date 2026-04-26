@@ -1,0 +1,14 @@
+D:\test\github-copilot\snake-game\bin\Debug\net8.0\SnakeGame.exe
+D:\test\github-copilot\snake-game\bin\Debug\net8.0\SnakeGame.deps.json
+D:\test\github-copilot\snake-game\bin\Debug\net8.0\SnakeGame.runtimeconfig.json
+D:\test\github-copilot\snake-game\bin\Debug\net8.0\SnakeGame.dll
+D:\test\github-copilot\snake-game\bin\Debug\net8.0\SnakeGame.pdb
+D:\test\github-copilot\snake-game\obj\Debug\net8.0\SnakeGame.GeneratedMSBuildEditorConfig.editorconfig
+D:\test\github-copilot\snake-game\obj\Debug\net8.0\SnakeGame.AssemblyInfoInputs.cache
+D:\test\github-copilot\snake-game\obj\Debug\net8.0\SnakeGame.AssemblyInfo.cs
+D:\test\github-copilot\snake-game\obj\Debug\net8.0\SnakeGame.csproj.CoreCompileInputs.cache
+D:\test\github-copilot\snake-game\obj\Debug\net8.0\SnakeGame.dll
+D:\test\github-copilot\snake-game\obj\Debug\net8.0\refint\SnakeGame.dll
+D:\test\github-copilot\snake-game\obj\Debug\net8.0\SnakeGame.pdb
+D:\test\github-copilot\snake-game\obj\Debug\net8.0\SnakeGame.genruntimeconfig.cache
+D:\test\github-copilot\snake-game\obj\Debug\net8.0\ref\SnakeGame.dll
