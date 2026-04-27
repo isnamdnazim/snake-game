@@ -9,6 +9,7 @@ This document provides code examples and implementation steps for addressing the
 ## 1. Fix Bare Exception Handling
 
 ### Current Code (BAD ❌)
+
 ```csharp
 // FileHighScoreStore.cs
 public int LoadBestScore()
@@ -30,6 +31,7 @@ public int LoadBestScore()
 ```
 
 ### Improved Code (GOOD ✅)
+
 ```csharp
 // FileHighScoreStore.cs
 public int LoadBestScore()
@@ -95,6 +97,7 @@ public void SaveBestScore(int score)
 ## 2. Extract Magic Numbers to Constants
 
 ### Current Code (BAD ❌)
+
 ```csharp
 // SnakeFormRenderer.cs
 private void DrawFood(Graphics g, DateTime now)
@@ -120,6 +123,7 @@ var panel = new Panel
 ### Improved Code (GOOD ✅)
 
 Create a new file: `UI/UiColors.cs`
+
 ```csharp
 namespace SnakeGame;
 
@@ -162,6 +166,7 @@ internal static class UiColors
 ```
 
 Create a new file: `UI/UiConstants.cs`
+
 ```csharp
 namespace SnakeGame;
 
@@ -209,6 +214,7 @@ internal static class UiConstants
 ```
 
 Update `SnakeFormRenderer.cs`:
+
 ```csharp
 private void DrawFood(Graphics g, DateTime now)
 {
@@ -237,6 +243,7 @@ private void DrawNewHighScoreBanner(Graphics g)
 ```
 
 Update `SnakeFormUI.cs`:
+
 ```csharp
 private Panel CreateMenuPanel(out ComboBox difficultyComboBox, out Label bestScoreLabel)
 {
@@ -257,7 +264,8 @@ private Panel CreateMenuPanel(out ComboBox difficultyComboBox, out Label bestSco
 ```
 
 **Implementation Time:** ~30 minutes  
-**Files Affected:** 
+**Files Affected:**
+
 - `UI/UiColors.cs` (NEW)
 - `UI/UiConstants.cs` (NEW)
 - `UI/SnakeFormRenderer.cs` (UPDATE)
@@ -268,6 +276,7 @@ private Panel CreateMenuPanel(out ComboBox difficultyComboBox, out Label bestSco
 ## 3. Extract Duplicate Code (StartGame/RestartGame)
 
 ### Current Code (BAD ❌)
+
 ```csharp
 // SnakeFormGameLogic.cs
 private void StartGame()
@@ -304,6 +313,7 @@ private void RestartGame()
 ```
 
 ### Improved Code (GOOD ✅)
+
 ```csharp
 // SnakeFormGameLogic.cs
 private void StartGame()
@@ -350,6 +360,7 @@ private void BeginGameSession(bool fromMenu)
 ## 4. Add Logging Infrastructure
 
 ### Create `ILogger` Interface
+
 ```csharp
 // Core/Logging/ILogger.cs
 namespace SnakeGame;
@@ -367,6 +378,7 @@ internal interface ILogger
 ```
 
 ### Create Debug Logger Implementation
+
 ```csharp
 // Core/Logging/DebugLogger.cs
 using System.Diagnostics;
@@ -388,6 +400,7 @@ internal sealed class DebugLogger : ILogger
 ```
 
 ### Update FileHighScoreStore to Use Logger
+
 ```csharp
 // Core/FileHighScoreStore.cs
 internal sealed class FileHighScoreStore(string filePath, ILogger logger) : IHighScoreStore
@@ -446,6 +459,7 @@ internal sealed class FileHighScoreStore(string filePath, ILogger logger) : IHig
 ```
 
 ### Update Program.cs to Inject Logger
+
 ```csharp
 // Program.cs
 private static void Main()
@@ -470,6 +484,7 @@ private static void Main()
 
 **Implementation Time:** ~45 minutes  
 **Files Affected:**
+
 - `Core/Logging/ILogger.cs` (NEW)
 - `Core/Logging/DebugLogger.cs` (NEW)
 - `Core/FileHighScoreStore.cs` (UPDATE)
@@ -480,6 +495,7 @@ private static void Main()
 ## 5. Add Unit Tests
 
 ### Create Test Project Structure
+
 ```
 SnakeGame.Tests/
 ├── SnakeGameEngine/
@@ -490,6 +506,7 @@ SnakeGame.Tests/
 ```
 
 ### Example Test File
+
 ```csharp
 // SnakeGame.Tests/SnakeGameEngine/SnakeGameEngineTests.cs
 using NUnit.Framework;
@@ -536,11 +553,11 @@ public class SnakeGameEngineTests
     public void ChangeDirection_OppositeDirection_IsIgnored()
     {
         _engine.StartGame();
-        
+
         // If moving right, changing to left should be ignored
         _engine.ChangeDirection(Direction.Right);
         _engine.ChangeDirection(Direction.Left);
-        
+
         // After tick, snake should move right (not left)
         _engine.Tick();
         // Assert snake moved right...
@@ -583,14 +600,14 @@ public class SnakeGameEngineTests
 
 ## Implementation Priority
 
-| Rank | Task | Time | Impact |
-|------|------|------|--------|
-| 1 | Fix bare exceptions | 10 min | HIGH |
-| 2 | Extract magic numbers | 30 min | HIGH |
-| 3 | Add logging | 45 min | MEDIUM |
-| 4 | Extract duplicate code | 15 min | MEDIUM |
-| 5 | Add unit tests | 3 hours | MEDIUM |
-| **TOTAL** | | **~4.5 hours** | |
+| Rank      | Task                   | Time           | Impact |
+| --------- | ---------------------- | -------------- | ------ |
+| 1         | Fix bare exceptions    | 10 min         | HIGH   |
+| 2         | Extract magic numbers  | 30 min         | HIGH   |
+| 3         | Add logging            | 45 min         | MEDIUM |
+| 4         | Extract duplicate code | 15 min         | MEDIUM |
+| 5         | Add unit tests         | 3 hours        | MEDIUM |
+| **TOTAL** |                        | **~4.5 hours** |        |
 
 ---
 
@@ -638,4 +655,3 @@ Documentation:
 
 **Total Estimated Effort:** 4-5 hours of development time  
 **Expected Result:** A+ grade (94+/100)
-
