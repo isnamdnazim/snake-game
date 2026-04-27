@@ -8,6 +8,19 @@ public sealed class SnakeGameEngineTests
     {
         public GridPoint Spawn(int width, int height, IReadOnlySet<GridPoint> occupiedCells)
         {
+            if (spawnPoint.X < 0 || spawnPoint.X >= width || spawnPoint.Y < 0 || spawnPoint.Y >= height)
+            {
+                throw new System.ArgumentOutOfRangeException(
+                    nameof(spawnPoint),
+                    $"Fixed spawn point {spawnPoint} is outside the grid bounds {width}x{height}.");
+            }
+
+            if (occupiedCells.Contains(spawnPoint))
+            {
+                throw new System.InvalidOperationException(
+                    $"Fixed spawn point {spawnPoint} is already occupied.");
+            }
+
             return spawnPoint;
         }
     }

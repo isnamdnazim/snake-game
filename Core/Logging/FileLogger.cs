@@ -39,9 +39,13 @@ internal sealed class FileLogger(string logDirectoryPath) : ILogger
                 File.AppendAllText(filePath, line, Encoding.UTF8);
             }
         }
-        catch
+        catch (Exception ex) when (ex is IOException
+                                       or UnauthorizedAccessException
+                                       or ArgumentException
+                                       or NotSupportedException)
         {
-            // Logging must never fail the application flow.
+            // Suppress expected I/O and path-related failures so logging never interrupts application flow.
+            System.Diagnostics.Debug.WriteLine($"[FileLogger] Failed to write log entry: {ex}");
         }
     }
 }
