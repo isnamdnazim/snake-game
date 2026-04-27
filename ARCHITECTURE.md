@@ -523,7 +523,7 @@ public class SnakeGameEngineTests
 
 ### System Requirements
 
-- .NET 8.0 runtime
+- .NET 9.0 runtime
 - Windows 7 or later
 - No external dependencies (framework-only)
 
