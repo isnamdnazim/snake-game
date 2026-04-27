@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 
 namespace SnakeGame;
@@ -45,7 +46,7 @@ internal sealed class FileLogger(string logDirectoryPath) : ILogger
                                        or NotSupportedException)
         {
             // Suppress expected I/O and path-related failures so logging never interrupts application flow.
-            System.Diagnostics.Debug.WriteLine($"[FileLogger] Failed to write log entry: {ex}");
+            Debug.WriteLine($"[FileLogger] Failed to write log entry: {ex}");
         }
     }
 }
