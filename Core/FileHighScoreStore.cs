@@ -19,8 +19,21 @@ internal sealed class FileHighScoreStore(string filePath) : IHighScoreStore
             var data = JsonSerializer.Deserialize<HighScoreData>(json);
             return data?.BestScore ?? 0;
         }
-        catch
+        catch (FileNotFoundException)
         {
+            // File not found on first run - expected, return default
+            return 0;
+        }
+        catch (JsonException ex)
+        {
+            // High score file corrupted, reset
+            System.Diagnostics.Debug.WriteLine($"High score file corrupted: {ex.Message}");
+            return 0;
+        }
+        catch (IOException ex)
+        {
+            // File access issues (permission, disk full, etc.)
+            System.Diagnostics.Debug.WriteLine($"Failed to read high score file: {ex.Message}");
             return 0;
         }
     }
@@ -39,10 +52,17 @@ internal sealed class FileHighScoreStore(string filePath) : IHighScoreStore
             var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(_filePath, json);
         }
-        catch
+        catch (UnauthorizedAccessException ex)
         {
-            // Intentionally no-op. Save failures should not break gameplay.
+            // Permission denied
+            System.Diagnostics.Debug.WriteLine($"Permission denied saving high score: {ex.Message}");
         }
+        catch (IOException ex)
+        {
+            // Other file access issues
+            System.Diagnostics.Debug.WriteLine($"Failed to save high score: {ex.Message}");
+        }
+        // Save failures should not break gameplay - silently continue
     }
 
     private sealed record HighScoreData(int BestScore);
