@@ -6,7 +6,7 @@ A modern, feature-rich Snake game implementation in C# using Windows Forms with 
 
 **Snake Game** is a classic arcade game built with:
 
-- **Language:** C# 8.0+ with .NET 8.0
+- **Language:** C# with .NET 9.0
 - **UI Framework:** Windows Forms with custom graphics
 - **Architecture:** Dependency Injection, SOLID principles
 - **Code Quality:** Industry-standard practices with comprehensive documentation
@@ -39,7 +39,7 @@ A modern, feature-rich Snake game implementation in C# using Windows Forms with 
 
 ### Prerequisites
 
-- .NET 8.0 SDK or later
+- .NET 9.0 SDK or later
 - Windows 7 or later (Windows Forms requirement)
 - Visual Studio 2022 or VS Code with C# extension
 
@@ -241,7 +241,7 @@ public static class UiConstants
 
 ### Requirements
 
-- .NET 8.0 SDK
+- .NET 9.0 SDK
 - Visual Studio 2022 / VS Code
 
 ### Build Steps
@@ -284,7 +284,7 @@ Unit test project planned (see ARCHITECTURE.md)
 
 ### Game Won't Start
 
-- Ensure .NET 8.0 is installed: `dotnet --version`
+- Ensure .NET 9.0 is installed: `dotnet --version`
 - Check for missing dependencies: `dotnet restore`
 - Rebuild the project: `dotnet clean && dotnet build`
 
