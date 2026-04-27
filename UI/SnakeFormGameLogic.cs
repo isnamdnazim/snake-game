@@ -46,18 +46,7 @@ internal sealed partial class SnakeForm
     private void StartGame()
     {
         _engine.StartGame();
-        _timer.Interval = GetTickInterval(GetSelectedDifficulty());
-        BeginCountdown();
-        _lastKnownScore = 0;
-
-        _menuPanel.Visible = false;
-        _gameOverPanel.Visible = false;
-        _pauseStartButton.Visible = true;
-        _pauseStartButton.Text = "Pause";
-
-        ActiveControl = null;
-        Focus();
-        Invalidate();
+        BeginGameSession(fromMenu: true);
     }
 
     /// <summary>
@@ -66,6 +55,16 @@ internal sealed partial class SnakeForm
     private void RestartGame()
     {
         _engine.RestartGame();
+        BeginGameSession(fromMenu: false);
+    }
+
+    /// <summary>
+    /// Common initialization for game sessions (start or restart).
+    /// Extracted to eliminate duplication between StartGame() and RestartGame().
+    /// </summary>
+    /// <param name="fromMenu">True if starting from menu, false if restarting from game over</param>
+    private void BeginGameSession(bool fromMenu)
+    {
         _timer.Interval = GetTickInterval(GetSelectedDifficulty());
         BeginCountdown();
         _lastKnownScore = 0;
@@ -73,6 +72,12 @@ internal sealed partial class SnakeForm
         _gameOverPanel.Visible = false;
         _pauseStartButton.Visible = true;
         _pauseStartButton.Text = "Pause";
+
+        if (fromMenu)
+        {
+            _menuPanel.Visible = false;
+            ActiveControl = null;
+        }
 
         Focus();
         Invalidate();

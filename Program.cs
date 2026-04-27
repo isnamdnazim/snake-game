@@ -14,11 +14,12 @@ internal static class Program
         IRandomProvider randomProvider = new SystemRandomProvider();
         IFoodSpawner foodSpawner = new FoodSpawner(randomProvider);
         ISnakeGameEngine engine = new SnakeGameEngine(settings, foodSpawner);
+        ILogger logger = new DebugLogger();
         var dataPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "SnakeGame",
             "highscore.json");
-        IHighScoreStore highScoreStore = new FileHighScoreStore(dataPath);
+        IHighScoreStore highScoreStore = new FileHighScoreStore(dataPath, logger);
 
         Application.Run(new SnakeForm(engine, settings, highScoreStore));
     }
