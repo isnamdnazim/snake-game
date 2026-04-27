@@ -7,20 +7,51 @@ internal static class Program
     [STAThread]
     private static void Main()
     {
-        Application.EnableVisualStyles();
-        Application.SetCompatibleTextRenderingDefault(false);
-
         var settings = new GameSettings();
         IRandomProvider randomProvider = new SystemRandomProvider();
         IFoodSpawner foodSpawner = new FoodSpawner(randomProvider);
         ISnakeGameEngine engine = new SnakeGameEngine(settings, foodSpawner);
-        ILogger logger = new DebugLogger();
-        var dataPath = Path.Combine(
+
+        var appDataDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "SnakeGame",
-            "highscore.json");
+            "SnakeGame");
+        var dataPath = Path.Combine(appDataDirectory, "highscore.json");
+        var logDirectoryPath = Path.Combine(appDataDirectory, "logs");
+
+        ILogger logger = new CompositeLogger(
+            new DebugLogger(),
+            new FileLogger(logDirectoryPath));
+
+        Application.ThreadException += (_, exArgs) =>
+            logger.Error("Unhandled UI thread exception", exArgs.Exception);
+
+        AppDomain.CurrentDomain.UnhandledException += (_, exArgs) =>
+        {
+            if (exArgs.ExceptionObject is Exception ex)
+            {
+                logger.Error("Unhandled non-UI exception", ex);
+                return;
+            }
+
+            logger.Warn("Unhandled non-UI exception of unknown type");
+        };
+
+        Application.EnableVisualStyles();
+        Application.SetCompatibleTextRenderingDefault(false);
+
         IHighScoreStore highScoreStore = new FileHighScoreStore(dataPath, logger);
 
-        Application.Run(new SnakeForm(engine, settings, highScoreStore));
+        logger.Info("Starting Snake Game");
+
+        try
+        {
+            Application.Run(new SnakeForm(engine, settings, highScoreStore));
+            logger.Info("Snake Game closed normally");
+        }
+        catch (Exception ex)
+        {
+            logger.Error("Fatal error while running Snake Game", ex);
+            throw;
+        }
     }
 }
