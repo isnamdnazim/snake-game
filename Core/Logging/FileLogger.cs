@@ -31,8 +31,10 @@ internal sealed class FileLogger(string logDirectoryPath) : ILogger
         try
         {
             Directory.CreateDirectory(_logDirectoryPath);
+
             var now = DateTime.Now;
             var filePath = Path.Combine(_logDirectoryPath, $"snakegame-{now:yyyyMMdd}.log");
+
             var line = $"[{now:yyyy-MM-dd HH:mm:ss.fff}] [{level}] {message}{Environment.NewLine}";
 
             lock (_syncRoot)
@@ -45,8 +47,8 @@ internal sealed class FileLogger(string logDirectoryPath) : ILogger
                                        or ArgumentException
                                        or NotSupportedException)
         {
-            // Suppress expected I/O and path-related failures so logging never interrupts application flow.
-            Debug.WriteLine($"[FileLogger] Failed to write log entry: {ex}");
+            // Use fully qualified name to avoid conflict with Debug() method
+            System.Diagnostics.Debug.WriteLine($"[FileLogger] Failed to write log entry: {ex}");
         }
     }
 }
