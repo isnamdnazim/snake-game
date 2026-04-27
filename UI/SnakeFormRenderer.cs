@@ -22,9 +22,7 @@ internal sealed partial class SnakeForm
         var pulseFactor = GetFoodPulseFactor(now);
         var inset = Math.Max(3, 6 - (int)Math.Round(pulseFactor * 2));
         var rect = CellBounds(_engine.Food, inset);
-        var color = pulseFactor > 0
-            ? Color.FromArgb(255, 255, 145, 55)
-            : Color.FromArgb(246, 90, 90);
+        var color = pulseFactor > 0 ? UiColors.Food.Pulsing : UiColors.Food.Resting;
         using var foodBrush = new SolidBrush(color);
         g.FillEllipse(foodBrush, rect);
     }
@@ -45,7 +43,7 @@ internal sealed partial class SnakeForm
             return;
         }
 
-        using (var bodyPen = new Pen(Color.FromArgb(42, 162, 78), _settings.CellSize * 0.52f)
+        using (var bodyPen = new Pen(UiColors.Snake.BodyPen, _settings.CellSize * UiConstants.Drawing.SnakeBodyPenFactor)
         {
             StartCap = LineCap.Round,
             EndCap = LineCap.Round
@@ -64,7 +62,7 @@ internal sealed partial class SnakeForm
             var segment = segments[i];
             var inset = i == segments.Count - 1 ? 6 : 4;
             var rect = CellBounds(segment, inset);
-            using var brush = new SolidBrush(Color.FromArgb(46, 175, 84));
+            using var brush = new SolidBrush(UiColors.Snake.BodyFill);
             g.FillEllipse(brush, rect);
         }
 
@@ -80,25 +78,23 @@ internal sealed partial class SnakeForm
         var inset = Math.Max(1, 2 - (int)Math.Round(pulseFactor));
         var rect = CellBounds(head, inset);
 
-        var headColor = pulseFactor > 0
-            ? Color.FromArgb(96, 236, 124)
-            : Color.FromArgb(78, 220, 108);
+        var headColor = pulseFactor > 0 ? UiColors.Snake.HeadPulsing : UiColors.Snake.Head;
 
         using (var headBrush = new SolidBrush(headColor))
         {
             g.FillEllipse(headBrush, rect);
         }
 
-        using (var outlinePen = new Pen(Color.FromArgb(36, 128, 62), 1.2f))
+        using (var outlinePen = new Pen(UiColors.Snake.HeadOutline, 1.2f))
         {
             g.DrawEllipse(outlinePen, rect);
         }
 
         var headDirection = GetHeadDirection(segments);
         var center = CellCenter(head);
-        var eyeDistance = _settings.CellSize * 0.13f;
-        var eyeRadius = Math.Max(2f, _settings.CellSize * 0.08f);
-        var eyeForwardOffset = _settings.CellSize * 0.16f;
+        var eyeDistance = _settings.CellSize * UiConstants.Drawing.EyeDistanceFactor;
+        var eyeRadius = Math.Max(2f, _settings.CellSize * UiConstants.Drawing.EyeRadiusFactor);
+        var eyeForwardOffset = _settings.CellSize * UiConstants.Drawing.EyeForwardOffsetFactor;
 
         var (fx, fy, px, py) = headDirection switch
         {
@@ -115,7 +111,7 @@ internal sealed partial class SnakeForm
             center.X + fx * eyeForwardOffset - px * eyeDistance,
             center.Y + fy * eyeForwardOffset - py * eyeDistance);
 
-        using var eyeBrush = new SolidBrush(Color.FromArgb(28, 28, 28));
+        using var eyeBrush = new SolidBrush(UiColors.Snake.Eye);
         g.FillEllipse(eyeBrush, eye1.X - eyeRadius, eye1.Y - eyeRadius, eyeRadius * 2, eyeRadius * 2);
         g.FillEllipse(eyeBrush, eye2.X - eyeRadius, eye2.Y - eyeRadius, eyeRadius * 2, eyeRadius * 2);
     }
@@ -156,19 +152,19 @@ internal sealed partial class SnakeForm
     /// </summary>
     private void DrawHud(Graphics g, int yStart, DateTime now)
     {
-        using var scoreBrush = new SolidBrush(Color.WhiteSmoke);
+        using var scoreBrush = new SolidBrush(UiColors.Text.Secondary);
         using var scoreFont = new Font("Segoe UI", 11, FontStyle.Bold);
         g.DrawString($"Score: {_engine.Score}", scoreFont, scoreBrush, new PointF(10, yStart + 10));
 
         using var metaFont = new Font("Segoe UI", 9);
-        using var metaBrush = new SolidBrush(Color.Gainsboro);
+        using var metaBrush = new SolidBrush(UiColors.Text.Muted);
         var difficulty = GetSelectedDifficulty();
         g.DrawString($"Difficulty: {difficulty}    Best: {_bestScore}", metaFont, metaBrush, new PointF(10, yStart + 33));
 
         if (_engine.Score > _lastKnownScore && now < _foodPulseUntilUtc)
         {
             using var plusFont = new Font("Segoe UI", 10, FontStyle.Bold);
-            using var plusBrush = new SolidBrush(Color.FromArgb(255, 255, 220, 90));
+            using var plusBrush = new SolidBrush(UiColors.Ui.ScoreDelta);
             g.DrawString($"+{_engine.Score - _lastKnownScore}", plusFont, plusBrush, new PointF(110, yStart + 10));
         }
     }
@@ -180,11 +176,11 @@ internal sealed partial class SnakeForm
     {
         var boardWidthPx = _settings.GridWidth * _settings.CellSize;
         var boardHeightPx = _settings.GridHeight * _settings.CellSize;
-        using var overlayBrush = new SolidBrush(Color.FromArgb(110, 0, 0, 0));
+        using var overlayBrush = new SolidBrush(UiColors.Ui.Overlay);
         g.FillRectangle(overlayBrush, new Rectangle(0, 0, boardWidthPx, boardHeightPx));
 
         using var font = new Font("Segoe UI", 24, FontStyle.Bold);
-        using var textBrush = new SolidBrush(Color.WhiteSmoke);
+        using var textBrush = new SolidBrush(UiColors.Text.Secondary);
         var size = g.MeasureString(text, font);
         g.DrawString(text, font, textBrush, (boardWidthPx - size.Width) / 2, (boardHeightPx - size.Height) / 2);
     }
@@ -195,14 +191,24 @@ internal sealed partial class SnakeForm
     private void DrawNewHighScoreBanner(Graphics g)
     {
         var boardWidthPx = _settings.GridWidth * _settings.CellSize;
-        var bannerRect = new Rectangle((boardWidthPx - 250) / 2, 10, 250, 36);
+        var bannerRect = new Rectangle(
+            (boardWidthPx - UiConstants.Drawing.HighScoreBannerWidth) / 2,
+            UiConstants.Drawing.HighScoreBannerTop,
+            UiConstants.Drawing.HighScoreBannerWidth,
+            UiConstants.Drawing.HighScoreBannerHeight);
 
-        using var bgBrush = new SolidBrush(Color.FromArgb(220, 43, 122, 62));
-        using var textBrush = new SolidBrush(Color.White);
+        using var bgBrush = new SolidBrush(UiColors.Ui.HighScoreBanner);
+        using var textBrush = new SolidBrush(UiColors.Text.Primary);
         using var font = new Font("Segoe UI", 10, FontStyle.Bold);
 
-        g.FillRoundedRectangle(bgBrush, bannerRect, 12);
-        g.DrawString("New High Score!", font, textBrush, new PointF(bannerRect.X + 52, bannerRect.Y + 9));
+        g.FillRoundedRectangle(bgBrush, bannerRect, UiConstants.Drawing.HighScoreBannerCornerRadius);
+        g.DrawString(
+            "New High Score!",
+            font,
+            textBrush,
+            new PointF(
+                bannerRect.X + UiConstants.Drawing.HighScoreBannerTextOffsetX,
+                bannerRect.Y + UiConstants.Drawing.HighScoreBannerTextOffsetY));
     }
 
     /// <summary>

@@ -41,7 +41,7 @@ internal sealed partial class SnakeForm : Form
         Text = "Snake Game";
         ClientSize = new Size(_settings.GridWidth * _settings.CellSize, _settings.GridHeight * _settings.CellSize + _settings.UiHeight);
         StartPosition = FormStartPosition.CenterScreen;
-        BackColor = Color.FromArgb(24, 24, 24);
+        BackColor = UiColors.Ui.FormBackground;
 
         _timer = new System.Windows.Forms.Timer { Interval = _settings.TickIntervalMs };
         _timer.Tick += (_, _) => TickFrame();
@@ -82,12 +82,17 @@ internal sealed partial class SnakeForm : Form
         var boardHeightPx = _settings.GridHeight * _settings.CellSize;
         var boardRect = new Rectangle(0, 0, boardWidthPx, boardHeightPx);
 
-        using var boardBrush = new SolidBrush(Color.FromArgb(34, 34, 34));
-        using var borderPen = new Pen(Color.FromArgb(95, 95, 95), 2f);
-        using var hudBrush = new SolidBrush(Color.FromArgb(20, 20, 20));
+        using var boardBrush = new SolidBrush(UiColors.Ui.BoardBackground);
+        using var borderPen = new Pen(UiColors.Ui.BoardBorder, UiConstants.Board.BorderThickness);
+        using var hudBrush = new SolidBrush(UiColors.Ui.HudBackground);
 
         g.FillRectangle(boardBrush, boardRect);
-        g.DrawRectangle(borderPen, 1, 1, boardRect.Width - 2, boardRect.Height - 2);
+        g.DrawRectangle(
+            borderPen,
+            UiConstants.Board.BorderInset,
+            UiConstants.Board.BorderInset,
+            boardRect.Width - UiConstants.Board.BorderInset * 2,
+            boardRect.Height - UiConstants.Board.BorderInset * 2);
         g.FillRectangle(hudBrush, new Rectangle(0, boardRect.Height, boardRect.Width, _settings.UiHeight));
 
         var now = DateTime.UtcNow;

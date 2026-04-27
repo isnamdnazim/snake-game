@@ -15,17 +15,19 @@ internal sealed partial class SnakeForm
         var button = new Button
         {
             Text = "Pause",
-            Size = new Size(112, 32),
+            Size = new Size(UiConstants.PauseButton.Width, UiConstants.PauseButton.Height),
             FlatStyle = FlatStyle.Flat,
             Font = new Font("Segoe UI", 9, FontStyle.Bold),
-            BackColor = Color.FromArgb(56, 56, 56),
-            ForeColor = Color.White,
-            Location = new Point(_settings.GridWidth * _settings.CellSize - 122, _settings.GridHeight * _settings.CellSize + 12),
+            BackColor = UiColors.Ui.ButtonNeutral,
+            ForeColor = UiColors.Text.Primary,
+            Location = new Point(
+                _settings.GridWidth * _settings.CellSize - UiConstants.PauseButton.RightOffset,
+                _settings.GridHeight * _settings.CellSize + UiConstants.PauseButton.TopOffset),
             Visible = false,
             TabStop = false
         };
 
-        button.FlatAppearance.BorderSize = 0;
+        button.FlatAppearance.BorderSize = UiConstants.PauseButton.BorderSize;
         button.Click += (_, _) => TogglePauseStart();
         return button;
     }
@@ -40,51 +42,53 @@ internal sealed partial class SnakeForm
 
         var panel = new Panel
         {
-            Size = new Size(330, 280),
-            Location = new Point((boardWidthPx - 330) / 2, (boardHeightPx - 280) / 2),
-            BackColor = Color.FromArgb(32, 32, 32)
+            Size = new Size(UiConstants.MenuPanel.Width, UiConstants.MenuPanel.Height),
+            Location = new Point(
+                (boardWidthPx - UiConstants.MenuPanel.Width) / 2,
+                (boardHeightPx - UiConstants.MenuPanel.Height) / 2),
+            BackColor = UiColors.Ui.MenuPanel
         };
 
         var title = new Label
         {
             Text = "Snake Game",
             Font = new Font("Segoe UI", 20, FontStyle.Bold),
-            ForeColor = Color.WhiteSmoke,
+            ForeColor = UiColors.Text.Secondary,
             AutoSize = false,
             Width = panel.Width,
-            Height = 50,
+            Height = UiConstants.MenuPanel.TitleHeight,
             TextAlign = ContentAlignment.MiddleCenter,
-            Top = 14
+            Top = UiConstants.MenuPanel.TitleTop
         };
 
         var subtitle = new Label
         {
             Text = "Pick difficulty and start",
             Font = new Font("Segoe UI", 10),
-            ForeColor = Color.Gainsboro,
+            ForeColor = UiColors.Text.Muted,
             AutoSize = false,
             Width = panel.Width,
-            Height = 24,
+            Height = UiConstants.MenuPanel.SubtitleHeight,
             TextAlign = ContentAlignment.MiddleCenter,
-            Top = 62
+            Top = UiConstants.MenuPanel.SubtitleTop
         };
 
         var difficultyLabel = new Label
         {
             Text = "Difficulty",
             Font = new Font("Segoe UI", 9, FontStyle.Bold),
-            ForeColor = Color.White,
+            ForeColor = UiColors.Text.Primary,
             AutoSize = true,
-            Left = 32,
-            Top = 102
+            Left = UiConstants.MenuPanel.HorizontalPadding,
+            Top = UiConstants.MenuPanel.DifficultyLabelTop
         };
 
         difficultyComboBox = new ComboBox
         {
             DropDownStyle = ComboBoxStyle.DropDownList,
-            Left = 32,
-            Top = 124,
-            Width = panel.Width - 64,
+            Left = UiConstants.MenuPanel.HorizontalPadding,
+            Top = UiConstants.MenuPanel.DifficultyComboTop,
+            Width = panel.Width - UiConstants.MenuPanel.HorizontalPadding * 2,
             Font = new Font("Segoe UI", 10)
         };
 
@@ -94,43 +98,43 @@ internal sealed partial class SnakeForm
         var startButton = new Button
         {
             Text = "Start Game",
-            Size = new Size(panel.Width - 64, 40),
-            Left = 32,
-            Top = 166,
+            Size = new Size(panel.Width - UiConstants.MenuPanel.HorizontalPadding * 2, UiConstants.MenuPanel.StartButtonHeight),
+            Left = UiConstants.MenuPanel.HorizontalPadding,
+            Top = UiConstants.MenuPanel.StartButtonTop,
             FlatStyle = FlatStyle.Flat,
             Font = new Font("Segoe UI", 10, FontStyle.Bold),
-            BackColor = Color.FromArgb(50, 160, 90),
-            ForeColor = Color.White,
+            BackColor = UiColors.Ui.ButtonPrimary,
+            ForeColor = UiColors.Text.Primary,
             TabStop = false
         };
-        startButton.FlatAppearance.BorderSize = 0;
+        startButton.FlatAppearance.BorderSize = UiConstants.PauseButton.BorderSize;
         startButton.Click += (_, _) => StartGame();
 
         var exitButton = new Button
         {
             Text = "Exit",
-            Size = new Size(panel.Width - 64, 34),
-            Left = 32,
-            Top = 212,
+            Size = new Size(panel.Width - UiConstants.MenuPanel.HorizontalPadding * 2, UiConstants.MenuPanel.ExitButtonHeight),
+            Left = UiConstants.MenuPanel.HorizontalPadding,
+            Top = UiConstants.MenuPanel.ExitButtonTop,
             FlatStyle = FlatStyle.Flat,
             Font = new Font("Segoe UI", 9, FontStyle.Bold),
-            BackColor = Color.FromArgb(70, 70, 70),
-            ForeColor = Color.White,
+            BackColor = UiColors.Ui.ButtonSecondary,
+            ForeColor = UiColors.Text.Primary,
             TabStop = false
         };
-        exitButton.FlatAppearance.BorderSize = 0;
+        exitButton.FlatAppearance.BorderSize = UiConstants.PauseButton.BorderSize;
         exitButton.Click += (_, _) => Close();
 
         bestScoreLabel = new Label
         {
             Text = $"Best Score: {_bestScore}",
             Font = new Font("Segoe UI", 9),
-            ForeColor = Color.Gainsboro,
+            ForeColor = UiColors.Text.Muted,
             AutoSize = false,
             Width = panel.Width,
-            Height = 20,
+            Height = UiConstants.MenuPanel.BestScoreHeight,
             TextAlign = ContentAlignment.MiddleCenter,
-            Top = 252
+            Top = UiConstants.MenuPanel.BestScoreTop
         };
 
         panel.Controls.Add(title);
@@ -154,9 +158,11 @@ internal sealed partial class SnakeForm
 
         var panel = new Panel
         {
-            Size = new Size(300, 200),
-            Location = new Point((boardWidthPx - 300) / 2, (boardHeightPx - 200) / 2),
-            BackColor = Color.FromArgb(34, 34, 34),
+            Size = new Size(UiConstants.GameOverPanel.Width, UiConstants.GameOverPanel.Height),
+            Location = new Point(
+                (boardWidthPx - UiConstants.GameOverPanel.Width) / 2,
+                (boardHeightPx - UiConstants.GameOverPanel.Height) / 2),
+            BackColor = UiColors.Ui.GameOverPanel,
             Visible = false
         };
 
@@ -164,66 +170,66 @@ internal sealed partial class SnakeForm
         {
             Text = "Game Over",
             Font = new Font("Segoe UI", 18, FontStyle.Bold),
-            ForeColor = Color.WhiteSmoke,
+            ForeColor = UiColors.Text.Secondary,
             AutoSize = false,
             Width = panel.Width,
-            Height = 42,
+            Height = UiConstants.GameOverPanel.TitleHeight,
             TextAlign = ContentAlignment.MiddleCenter,
-            Top = 10
+            Top = UiConstants.GameOverPanel.TitleTop
         };
 
         scoreLabel = new Label
         {
             Text = "Score: 0",
             Font = new Font("Segoe UI", 11, FontStyle.Bold),
-            ForeColor = Color.White,
+            ForeColor = UiColors.Text.Primary,
             AutoSize = false,
             Width = panel.Width,
-            Height = 26,
+            Height = UiConstants.GameOverPanel.ScoreHeight,
             TextAlign = ContentAlignment.MiddleCenter,
-            Top = 58
+            Top = UiConstants.GameOverPanel.ScoreTop
         };
 
         bestLabel = new Label
         {
             Text = "Best: 0",
             Font = new Font("Segoe UI", 10),
-            ForeColor = Color.Gainsboro,
+            ForeColor = UiColors.Text.Muted,
             AutoSize = false,
             Width = panel.Width,
-            Height = 24,
+            Height = UiConstants.GameOverPanel.BestHeight,
             TextAlign = ContentAlignment.MiddleCenter,
-            Top = 86
+            Top = UiConstants.GameOverPanel.BestTop
         };
 
         var restartButton = new Button
         {
             Text = "Play Again",
-            Size = new Size(panel.Width - 60, 36),
-            Left = 30,
-            Top = 118,
+            Size = new Size(panel.Width - UiConstants.GameOverPanel.ButtonHorizontalPadding, UiConstants.GameOverPanel.RestartHeight),
+            Left = UiConstants.GameOverPanel.ButtonLeft,
+            Top = UiConstants.GameOverPanel.RestartTop,
             FlatStyle = FlatStyle.Flat,
             Font = new Font("Segoe UI", 9, FontStyle.Bold),
-            BackColor = Color.FromArgb(50, 160, 90),
-            ForeColor = Color.White,
+            BackColor = UiColors.Ui.ButtonPrimary,
+            ForeColor = UiColors.Text.Primary,
             TabStop = false
         };
-        restartButton.FlatAppearance.BorderSize = 0;
+        restartButton.FlatAppearance.BorderSize = UiConstants.PauseButton.BorderSize;
         restartButton.Click += (_, _) => RestartGame();
 
         var menuButton = new Button
         {
             Text = "Main Menu",
-            Size = new Size(panel.Width - 60, 30),
-            Left = 30,
-            Top = 158,
+            Size = new Size(panel.Width - UiConstants.GameOverPanel.ButtonHorizontalPadding, UiConstants.GameOverPanel.MenuHeight),
+            Left = UiConstants.GameOverPanel.ButtonLeft,
+            Top = UiConstants.GameOverPanel.MenuTop,
             FlatStyle = FlatStyle.Flat,
             Font = new Font("Segoe UI", 9, FontStyle.Bold),
-            BackColor = Color.FromArgb(70, 70, 70),
-            ForeColor = Color.White,
+            BackColor = UiColors.Ui.ButtonSecondary,
+            ForeColor = UiColors.Text.Primary,
             TabStop = false
         };
-        menuButton.FlatAppearance.BorderSize = 0;
+        menuButton.FlatAppearance.BorderSize = UiConstants.PauseButton.BorderSize;
         menuButton.Click += (_, _) => ShowMenu();
 
         panel.Controls.Add(title);
