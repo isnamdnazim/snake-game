@@ -1,6 +1,6 @@
 namespace SnakeGame;
 
-internal enum DifficultyLevel
+public enum DifficultyLevel
 {
     Easy,
     Normal,

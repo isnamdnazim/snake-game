@@ -1,6 +1,6 @@
 namespace SnakeGame;
 
-internal sealed class SnakeGameEngine(GameSettings settings, IFoodSpawner foodSpawner) : ISnakeGameEngine
+public sealed class SnakeGameEngine(GameSettings settings, IFoodSpawner foodSpawner) : ISnakeGameEngine
 {
     private readonly GameSettings _settings = settings;
     private readonly IFoodSpawner _foodSpawner = foodSpawner;

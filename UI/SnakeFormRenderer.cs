@@ -1,9 +1,11 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
+using System.Runtime.Versioning;
 
 namespace SnakeGame;
 
+[SupportedOSPlatform("windows")]
 /// <summary>
 /// Partial class containing rendering and drawing methods.
 /// </summary>
@@ -262,3 +264,4 @@ internal sealed partial class SnakeForm
         return new PointF(x, y);
     }
 }
+

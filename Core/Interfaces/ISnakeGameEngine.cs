@@ -1,6 +1,6 @@
 namespace SnakeGame;
 
-internal interface ISnakeGameEngine
+public interface ISnakeGameEngine
 {
     int Score { get; }
     GamePhase Phase { get; }

@@ -1,6 +1,6 @@
 namespace SnakeGame;
 
-internal enum GamePhase
+public enum GamePhase
 {
     NotStarted,
     Running,

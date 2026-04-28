@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace SnakeGame;
 
-internal sealed class FileHighScoreStore(string filePath, ILogger logger) : IHighScoreStore
+public sealed class FileHighScoreStore(string filePath, ILogger logger) : IHighScoreStore
 {
     private readonly string _filePath = filePath;
     private readonly ILogger _logger = logger;

@@ -1,6 +1,6 @@
 namespace SnakeGame;
 
-internal sealed class SystemRandomProvider : IRandomProvider
+public sealed class SystemRandomProvider : IRandomProvider
 {
     private readonly Random _random = new();
 

@@ -6,7 +6,7 @@ namespace SnakeGame;
 /// <summary>
 /// Logger implementation that persists messages to rolling daily log files.
 /// </summary>
-internal sealed class FileLogger(string logDirectoryPath) : ILogger
+public sealed class FileLogger(string logDirectoryPath) : ILogger
 {
     private readonly string _logDirectoryPath = logDirectoryPath;
     private readonly object _syncRoot = new();

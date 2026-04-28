@@ -3,7 +3,7 @@ namespace SnakeGame;
 /// <summary>
 /// Logging interface for diagnostic purposes.
 /// </summary>
-internal interface ILogger
+public interface ILogger
 {
     /// <summary>
     /// Logs a debug message.

@@ -1,10 +1,12 @@
 using System.Windows.Forms;
+using System.Runtime.Versioning;
 
 namespace SnakeGame;
 
 internal static class Program
 {
     [STAThread]
+    [SupportedOSPlatform("windows")]
     private static void Main()
     {
         var settings = new GameSettings();
@@ -50,8 +52,7 @@ internal static class Program
         }
         catch (Exception ex)
         {
-            logger.Error("Fatal error while running Snake Game", ex);
-            throw;
+            logger.Error("Fatal error", ex);
         }
     }
 }
