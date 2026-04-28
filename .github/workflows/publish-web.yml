@@ -3,6 +3,7 @@ name: Publish Web
 on:
   push:
     branches:
+      - develop
       - web-publish
   workflow_dispatch:
 
