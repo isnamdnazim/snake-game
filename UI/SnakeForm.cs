@@ -1,8 +1,10 @@
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
+using System.Runtime.Versioning;
 
 namespace SnakeGame;
 
+[SupportedOSPlatform("windows")]
 internal sealed partial class SnakeForm : Form
 {
     private const int CountdownSeconds = 3;
@@ -116,5 +118,3 @@ internal sealed partial class SnakeForm : Form
         }
     }
 }
-
-

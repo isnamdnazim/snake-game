@@ -1,7 +1,9 @@
 using System.Windows.Forms;
+using System.Runtime.Versioning;
 
 namespace SnakeGame;
 
+[SupportedOSPlatform("windows")]
 /// <summary>
 /// Partial class containing UI initialization and panel creation methods.
 /// </summary>
@@ -241,3 +243,4 @@ internal sealed partial class SnakeForm
         return panel;
     }
 }
+

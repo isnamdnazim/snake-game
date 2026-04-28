@@ -1,6 +1,6 @@
 namespace SnakeGame;
 
-internal sealed class FoodSpawner(IRandomProvider randomProvider) : IFoodSpawner
+public sealed class FoodSpawner(IRandomProvider randomProvider) : IFoodSpawner
 {
     private readonly IRandomProvider _randomProvider = randomProvider;
 

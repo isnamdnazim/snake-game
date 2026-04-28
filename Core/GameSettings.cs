@@ -1,6 +1,6 @@
 namespace SnakeGame;
 
-internal sealed class GameSettings
+public sealed class GameSettings
 {
     public int GridWidth { get; init; } = 24;
     public int GridHeight { get; init; } = 24;

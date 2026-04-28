@@ -1,7 +1,9 @@
 using System.Drawing.Drawing2D;
+using System.Runtime.Versioning;
 
 namespace SnakeGame;
 
+[SupportedOSPlatform("windows")]
 internal static class GraphicsExtensions
 {
     public static void FillRoundedRectangle(this Graphics graphics, Brush brush, Rectangle bounds, int radius)
@@ -18,3 +20,4 @@ internal static class GraphicsExtensions
         graphics.FillPath(brush, path);
     }
 }
+

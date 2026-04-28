@@ -1,6 +1,6 @@
 namespace SnakeGame;
 
-internal interface IRandomProvider
+public interface IRandomProvider
 {
     int Next(int maxValue);
 }

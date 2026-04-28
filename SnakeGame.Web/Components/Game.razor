@@ -1,0 +1,197 @@
+@using SnakeGame
+@using Microsoft.AspNetCore.Components.Web
+@inject ISnakeGameEngine Engine
+@inject GameSettings Settings
+@implements IAsyncDisposable
+
+<div @ref="gameContainer" tabindex="0" @onkeydown="HandleKeyDown" @onkeydown:preventDefault="true"
+     @onkeydown:stopPropagation="true"
+     style="outline:none; font-family:Arial, sans-serif; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:12px; box-sizing:border-box;">
+    <div style="display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap; max-width:100%;">
+        <div>
+            <h1 style="margin:0 0 12px 0;">Snake Game</h1>
+
+            <div
+                style="position:relative; width:@(Settings.GridWidth* Settings.CellSize)px; height:@(Settings.GridHeight* Settings.CellSize)px; background:#000; border:2px solid #333;">
+                @foreach (var seg in Engine.SnakeSegments)
+                {
+                    <div
+                        style="position:absolute; left:@(seg.X* Settings.CellSize)px; top:@(seg.Y* Settings.CellSize)px; width:@(Settings.CellSize)px; height:@(Settings.CellSize)px; background:#0f0; box-sizing:border-box; border:1px solid #061;">
+                    </div>
+                }
+
+                @if (Engine.Food.X >= 0 && Engine.Food.Y >= 0)
+                {
+                    <div
+                        style="position:absolute; left:@(Engine.Food.X* Settings.CellSize)px; top:@(Engine.Food.Y* Settings.CellSize)px; width:@(Settings.CellSize)px; height:@(Settings.CellSize)px; background:#f00;">
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div style="min-width:260px; display:flex; flex-direction:column; gap:12px; padding-top:36px;">
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <button type="button" @onclick="StartAsync"
+                        disabled="@(Engine.Phase == global::SnakeGame.GamePhase.Running)"
+                        style="padding:8px 16px; font-size:14px; cursor:pointer;">Start</button>
+                <button type="button" @onclick="TogglePauseAsync"
+                        disabled="@(Engine.Phase == global::SnakeGame.GamePhase.NotStarted)"
+                        style="padding:8px 16px; font-size:14px; cursor:pointer;">@(Engine.Phase ==
+                                                                                global::SnakeGame.GamePhase.Paused ? "Resume" : "Pause")</button>
+                    <button type="button" @onclick="RestartAsync"
+                            disabled="@(Engine.Phase != global::SnakeGame.GamePhase.GameOver)"
+                            style="padding:8px 16px; font-size:14px; cursor:pointer;">Restart</button>
+                </div>
+
+                <div style="font-weight:bold; font-size:16px;">Score: @Engine.Score</div>
+                <div style="font-size:14px; color:#666;">Status: <strong>@GetStatusText()</strong></div>
+
+                <div
+                    style="display:grid; grid-template-columns:72px 72px 72px; grid-template-rows:72px 72px 72px; gap:8px; width:max-content; user-select:none;">
+                    <div></div>
+                    <button type="button" @onclick="MoveUpAsync" style="font-size:24px; font-weight:bold;">▲</button>
+                    <div></div>
+
+                    <button type="button" @onclick="MoveLeftAsync" style="font-size:24px; font-weight:bold;">◀</button>
+                    <div></div>
+                    <button type="button" @onclick="MoveRightAsync" style="font-size:24px; font-weight:bold;">▶</button>
+
+                    <div></div>
+                    <button type="button" @onclick="MoveDownAsync" style="font-size:24px; font-weight:bold;">▼</button>
+                    <div></div>
+                </div>
+
+                <div style="font-size:12px; color:#999; line-height:1.5;">
+                    <div>Controls:</div>
+                    <div>On-screen buttons - Move snake</div>
+                    <div>Arrow Keys - Move snake</div>
+                    <div>Space - Pause/Resume</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+@code {
+    private ElementReference gameContainer;
+    private System.Timers.Timer? _timer;
+    private bool _disposed;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await FocusPlayfieldAsync();
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        _timer = new System.Timers.Timer(Settings.TickIntervalMs);
+        _timer.Elapsed += (_, _) => InvokeAsync(async () => { Engine.Tick(); await InvokeAsync(StateHasChanged); });
+        _timer.AutoReset = true;
+        _timer.Start();
+    }
+
+    private async Task StartAsync()
+    {
+        Engine.StartGame();
+        await FocusPlayfieldAsync();
+        StateHasChanged();
+    }
+
+    private async Task TogglePauseAsync()
+    {
+        Engine.TogglePause();
+        await FocusPlayfieldAsync();
+        StateHasChanged();
+    }
+
+    private async Task RestartAsync()
+    {
+        Engine.RestartGame();
+        await FocusPlayfieldAsync();
+        StateHasChanged();
+    }
+
+    private async Task MoveUpAsync()
+    {
+        Engine.ChangeDirection(global::SnakeGame.Direction.Up);
+        await FocusPlayfieldAsync();
+        StateHasChanged();
+    }
+
+    private async Task MoveDownAsync()
+    {
+        Engine.ChangeDirection(global::SnakeGame.Direction.Down);
+        await FocusPlayfieldAsync();
+        StateHasChanged();
+    }
+
+    private async Task MoveLeftAsync()
+    {
+        Engine.ChangeDirection(global::SnakeGame.Direction.Left);
+        await FocusPlayfieldAsync();
+        StateHasChanged();
+    }
+
+    private async Task MoveRightAsync()
+    {
+        Engine.ChangeDirection(global::SnakeGame.Direction.Right);
+        await FocusPlayfieldAsync();
+        StateHasChanged();
+    }
+
+    private async Task FocusPlayfieldAsync()
+    {
+        await gameContainer.FocusAsync();
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case "ArrowUp":
+                Engine.ChangeDirection(global::SnakeGame.Direction.Up);
+                break;
+            case "ArrowDown":
+                Engine.ChangeDirection(global::SnakeGame.Direction.Down);
+                break;
+            case "ArrowLeft":
+                Engine.ChangeDirection(global::SnakeGame.Direction.Left);
+                break;
+            case "ArrowRight":
+                Engine.ChangeDirection(global::SnakeGame.Direction.Right);
+                break;
+            case " ":
+                Engine.TogglePause();
+                break;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string GetStatusText() => Engine.Phase switch
+    {
+        global::SnakeGame.GamePhase.NotStarted => "Press Start to begin",
+        global::SnakeGame.GamePhase.Running => "Running",
+        global::SnakeGame.GamePhase.Paused => "Paused",
+        global::SnakeGame.GamePhase.GameOver => $"Game Over! Final Score: {Engine.Score}",
+        _ => "Unknown"
+    };
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (!_disposed)
+        {
+            _disposed = true;
+            if (_timer is not null)
+            {
+                _timer.Stop();
+                _timer.Dispose();
+            }
+
+            await Task.CompletedTask;
+        }
+    }
+}

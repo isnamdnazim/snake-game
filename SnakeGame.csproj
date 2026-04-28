@@ -5,9 +5,12 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Remove="SnakeGame.Tests\**\*.cs" />
+    <Compile Remove="SnakeGame.Core\**\*.cs" />
+    <Compile Remove="SnakeGame.Web\**\*.cs" />
   </ItemGroup>
 </Project>

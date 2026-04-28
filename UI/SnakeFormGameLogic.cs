@@ -1,7 +1,9 @@
 using System.Windows.Forms;
+using System.Runtime.Versioning;
 
 namespace SnakeGame;
 
+[SupportedOSPlatform("windows")]
 /// <summary>
 /// Partial class containing game logic and state management methods.
 /// </summary>
@@ -268,3 +270,4 @@ internal sealed partial class SnakeForm
         _ => 95
     };
 }
+

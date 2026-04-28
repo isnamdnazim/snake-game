@@ -1,6 +1,6 @@
 namespace SnakeGame;
 
-internal interface IHighScoreStore
+public interface IHighScoreStore
 {
     int LoadBestScore();
     void SaveBestScore(int score);

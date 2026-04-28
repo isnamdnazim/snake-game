@@ -3,7 +3,7 @@ namespace SnakeGame;
 /// <summary>
 /// Logger that forwards messages to multiple logger implementations.
 /// </summary>
-internal sealed class CompositeLogger(params ILogger[] loggers) : ILogger
+public sealed class CompositeLogger(params ILogger[] loggers) : ILogger
 {
     private readonly IReadOnlyList<ILogger> _loggers = loggers;
 

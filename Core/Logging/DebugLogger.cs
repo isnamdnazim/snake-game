@@ -6,18 +6,18 @@ namespace SnakeGame;
 /// Logger implementation using System.Diagnostics.Debug.
 /// Outputs to Debug window in Visual Studio or Debug Output console.
 /// </summary>
-internal sealed class DebugLogger : ILogger
+public sealed class DebugLogger : ILogger
 {
     /// <summary>
     /// Logs a debug message.
     /// </summary>
-    public void Debug(string message) => 
+    public void Debug(string message) =>
         System.Diagnostics.Debug.WriteLine($"[DEBUG] {message}");
 
     /// <summary>
     /// Logs an informational message.
     /// </summary>
-    public void Info(string message) => 
+    public void Info(string message) =>
         System.Diagnostics.Debug.WriteLine($"[INFO] {message}");
 
     /// <summary>
