@@ -1,80 +1,241 @@
-@using SnakeGame
+﻿@using SnakeGame
 @using Microsoft.AspNetCore.Components.Web
 @inject ISnakeGameEngine Engine
 @inject GameSettings Settings
+@inject IHighScoreStore HighScoreStore
 @implements IAsyncDisposable
 
-<div @ref="gameContainer" tabindex="0" @onkeydown="HandleKeyDown" @onkeydown:preventDefault="true"
-     @onkeydown:stopPropagation="true"
-     style="outline:none; font-family:Arial, sans-serif; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:12px; box-sizing:border-box;">
-    <div style="display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap; max-width:100%;">
-        <div>
-            <h1 style="margin:0 0 12px 0;">Snake Game</h1>
+<div @ref="gameContainer" tabindex="0" @onkeydown="HandleKeyDown" @onkeydown:preventDefault="true" @onkeydown:stopPropagation="true"
+     style="min-height:100vh; box-sizing:border-box; padding:24px; font-family:'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; background:radial-gradient(circle at top, rgba(78,205,196,0.12), transparent 34%), radial-gradient(circle at bottom right, rgba(255,230,109,0.08), transparent 28%), linear-gradient(135deg, #0f0f1e 0%, #121225 45%, #1a1a2e 100%); color:#fff; outline:none; display:flex; flex-direction:column; gap:20px;">
 
-            <div
-                style="position:relative; width:@(Settings.GridWidth* Settings.CellSize)px; height:@(Settings.GridHeight* Settings.CellSize)px; background:#000; border:2px solid #333;">
-                @foreach (var seg in Engine.SnakeSegments)
-                {
-                    <div
-                        style="position:absolute; left:@(seg.X* Settings.CellSize)px; top:@(seg.Y* Settings.CellSize)px; width:@(Settings.CellSize)px; height:@(Settings.CellSize)px; background:#0f0; box-sizing:border-box; border:1px solid #061;">
-                    </div>
-                }
+    @if (_showNewHighScoreBanner)
+    {
+        <div style="position:fixed; top:18px; left:50%; transform:translateX(-50%); z-index:220; background:linear-gradient(135deg,#ffe66d,#ffd24d); color:#111; padding:12px 22px; border-radius:999px; font-weight:800; box-shadow:0 12px 30px rgba(255,230,109,0.35);">
+            🎉 New High Score!
+        </div>
+    }
 
-                @if (Engine.Food.X >= 0 && Engine.Food.Y >= 0)
-                {
-                    <div
-                        style="position:absolute; left:@(Engine.Food.X* Settings.CellSize)px; top:@(Engine.Food.Y* Settings.CellSize)px; width:@(Settings.CellSize)px; height:@(Settings.CellSize)px; background:#f00;">
+    @if (_showMenuPanel)
+    {
+        <div style="position:fixed; inset:0; z-index:120; display:flex; align-items:center; justify-content:center; background:rgba(3,6,20,0.72); backdrop-filter:blur(8px); padding:24px;">
+            <div style="width:min(440px, 100%); background:rgba(20,24,42,0.96); border:1px solid rgba(78,205,196,0.38); border-radius:24px; padding:32px; box-shadow:0 24px 60px rgba(0,0,0,0.55); text-align:center;">
+                <div style="font-size:48px; margin-bottom:10px;">🐍</div>
+                <h2 style="margin:0 0 22px; font-size:32px; color:#ffe66d; letter-spacing:0.3px;">Snake Game</h2>
+                <div style="text-align:left; margin-bottom:16px; color:#bfc5d8; font-size:12px; text-transform:uppercase; letter-spacing:1px; font-weight:700;">Difficulty</div>
+                <select @onchange="HandleDifficultyChange"
+                        style="width:100%; padding:14px 16px; margin-bottom:22px; border-radius:14px; border:1px solid rgba(78,205,196,0.55); background:#0f1427; color:#fff; font-size:15px; outline:none;">
+                    <option value="Easy">🟢 Easy</option>
+                    <option value="Normal" selected>🟡 Normal</option>
+                    <option value="Hard">🔴 Hard</option>
+                </select>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:24px;">
+                    <div style="padding:16px; border-radius:16px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06);">
+                        <div style="font-size:11px; letter-spacing:1px; color:#a8afc4; text-transform:uppercase; margin-bottom:8px;">Best Score</div>
+                        <div style="font-size:34px; line-height:1; font-weight:800; color:#ffe66d;">@_bestScore</div>
                     </div>
-                }
+                    @if (Engine.Phase == GamePhase.Paused)
+                    {
+                        <button type="button" @onclick="ResumeFromMenuAsync" style="padding:16px; border-radius:16px; background:rgba(78,205,196,0.12); border:1px solid rgba(78,205,196,0.18); color:#fff; text-align:left; cursor:pointer;">
+                            <div style="font-size:11px; letter-spacing:1px; color:#a8afc4; text-transform:uppercase; margin-bottom:8px;">Ready?</div>
+                            <div style="font-size:34px; line-height:1; font-weight:800; color:#4ecdc4;">▶</div>
+                        </button>
+                    }
+                </div>
+                <button @onclick="StartGameAsync"
+                        style="width:100%; padding:15px 18px; border:none; border-radius:14px; background:linear-gradient(135deg,#4ecdc4,#5ef2df); color:#06101a; font-size:16px; font-weight:800; cursor:pointer; box-shadow:0 12px 28px rgba(78,205,196,0.28);">
+                    Start Game
+                </button>
             </div>
         </div>
+    }
 
-        <div style="min-width:260px; display:flex; flex-direction:column; gap:12px; padding-top:36px;">
-            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                <button type="button" @onclick="StartAsync"
-                        disabled="@(Engine.Phase == global::SnakeGame.GamePhase.Running)"
-                        style="padding:8px 16px; font-size:14px; cursor:pointer;">Start</button>
-                <button type="button" @onclick="TogglePauseAsync"
-                        disabled="@(Engine.Phase == global::SnakeGame.GamePhase.NotStarted)"
-                        style="padding:8px 16px; font-size:14px; cursor:pointer;">@(Engine.Phase ==
-                                                                                global::SnakeGame.GamePhase.Paused ? "Resume" : "Pause")</button>
-                    <button type="button" @onclick="RestartAsync"
-                            disabled="@(Engine.Phase != global::SnakeGame.GamePhase.GameOver)"
-                            style="padding:8px 16px; font-size:14px; cursor:pointer;">Restart</button>
+    @if (_showGameOverPanel)
+    {
+        <div style="position:fixed; inset:0; z-index:120; display:flex; align-items:center; justify-content:center; background:rgba(3,6,20,0.72); backdrop-filter:blur(8px); padding:24px;">
+            <div style="width:min(460px, 100%); background:rgba(20,24,42,0.97); border:1px solid rgba(255,51,51,0.35); border-radius:24px; padding:32px; box-shadow:0 24px 60px rgba(0,0,0,0.55); text-align:center;">
+                <div style="font-size:48px; margin-bottom:10px;">💀</div>
+                <h2 style="margin:0 0 22px; font-size:32px; color:#ff6666; letter-spacing:0.3px;">Game Over</h2>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:24px;">
+                    <div style="padding:16px; border-radius:16px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06);">
+                        <div style="font-size:11px; letter-spacing:1px; color:#a8afc4; text-transform:uppercase; margin-bottom:8px;">Your Score</div>
+                        <div style="font-size:34px; line-height:1; font-weight:800; color:#ffe66d;">@Engine.Score</div>
+                    </div>
+                    <div style="padding:16px; border-radius:16px; background:rgba(255,230,109,0.08); border:1px solid rgba(255,230,109,0.12);">
+                        <div style="font-size:11px; letter-spacing:1px; color:#a8afc4; text-transform:uppercase; margin-bottom:8px;">Best Score</div>
+                        <div style="font-size:34px; line-height:1; font-weight:800; color:#ffe66d;">@_bestScore</div>
+                    </div>
                 </div>
-
-                <div style="font-weight:bold; font-size:16px;">Score: @Engine.Score</div>
-                <div style="font-size:14px; color:#666;">Status: <strong>@GetStatusText()</strong></div>
-
-                <div
-                    style="display:grid; grid-template-columns:72px 72px 72px; grid-template-rows:72px 72px 72px; gap:8px; width:max-content; user-select:none;">
-                    <div></div>
-                    <button type="button" @onclick="MoveUpAsync" style="font-size:24px; font-weight:bold;">▲</button>
-                    <div></div>
-
-                    <button type="button" @onclick="MoveLeftAsync" style="font-size:24px; font-weight:bold;">◀</button>
-                    <div></div>
-                    <button type="button" @onclick="MoveRightAsync" style="font-size:24px; font-weight:bold;">▶</button>
-
-                    <div></div>
-                    <button type="button" @onclick="MoveDownAsync" style="font-size:24px; font-weight:bold;">▼</button>
-                    <div></div>
-                </div>
-
-                <div style="font-size:12px; color:#999; line-height:1.5;">
-                    <div>Controls:</div>
-                    <div>On-screen buttons - Move snake</div>
-                    <div>Arrow Keys - Move snake</div>
-                    <div>Space - Pause/Resume</div>
+                <div style="display:flex; gap:12px; flex-direction:column;">
+                    <button @onclick="RestartGameAsync"
+                            style="padding:15px 18px; border:none; border-radius:14px; background:linear-gradient(135deg,#4ecdc4,#5ef2df); color:#06101a; font-size:16px; font-weight:800; cursor:pointer; box-shadow:0 12px 28px rgba(78,205,196,0.22);">
+                        Restart
+                    </button>
+                    <button @onclick="OpenMenuAsync"
+                            style="padding:15px 18px; border:none; border-radius:14px; background:#e0e3ea; color:#111827; font-size:16px; font-weight:800; cursor:pointer;">
+                        Menu
+                    </button>
                 </div>
             </div>
+        </div>
+    }
+
+    <div style="max-width:1500px; width:100%; margin:0 auto; display:flex; flex-direction:column; gap:18px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; padding:18px 20px; border-radius:20px; background:rgba(19,24,44,0.7); border:1px solid rgba(255,255,255,0.06); box-shadow:0 14px 40px rgba(0,0,0,0.24); backdrop-filter:blur(10px);">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div style="width:48px; height:48px; border-radius:14px; background:linear-gradient(135deg,#4ecdc4,#3db8a8); display:flex; align-items:center; justify-content:center; font-size:24px; box-shadow:0 10px 24px rgba(78,205,196,0.2);">🐍</div>
+                <div>
+                    <div style="font-size:28px; font-weight:800; line-height:1; margin-bottom:4px;">Snake Game</div>
+                    <div style="color:#aab1c7; font-size:13px;">Classic arcade</div>
+                </div>
+            </div>
+
+            @if (!_showMenuPanel && !_showGameOverPanel)
+            {
+                <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                    <div style="min-width:120px; padding:12px 16px; border-radius:16px; background:rgba(78,205,196,0.10); border:1px solid rgba(78,205,196,0.18);">
+                        <div style="font-size:11px; color:#a8afc4; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Score</div>
+                        <div style="font-size:24px; font-weight:800; color:#ffe66d;">@Engine.Score</div>
+                    </div>
+                    <div style="min-width:120px; padding:12px 16px; border-radius:16px; background:rgba(255,230,109,0.08); border:1px solid rgba(255,230,109,0.16);">
+                        <div style="font-size:11px; color:#a8afc4; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Best</div>
+                        <div style="font-size:24px; font-weight:800; color:#ffe66d;">@_bestScore</div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div style="display:grid; grid-template-columns:minmax(250px,280px) minmax(0,1fr) minmax(250px,280px); gap:22px; align-items:start; justify-content:center;">
+            @if (!_showMenuPanel && !_showGameOverPanel)
+            {
+                <div style="background:rgba(19,24,44,0.7); border:1px solid rgba(78,205,196,0.16); border-radius:22px; padding:22px; box-shadow:0 14px 40px rgba(0,0,0,0.18); backdrop-filter:blur(10px);">
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:18px; color:#4ecdc4; font-weight:800; font-size:15px; text-transform:uppercase; letter-spacing:1px;">
+                        <span>📱</span> How to Play
+                    </div>
+                    <div style="display:grid; gap:14px; color:#d8deee; font-size:13px; line-height:1.45;">
+                        <div><div style="color:#4ecdc4; font-weight:700; margin-bottom:4px;">Arrow Keys / D-Pad</div><div style="color:#aab1c7;">Move snake around the board</div></div>
+                        <div><div style="color:#4ecdc4; font-weight:700; margin-bottom:4px;">Space Bar</div><div style="color:#aab1c7;">Pause or resume the game</div></div>
+                        <div><div style="color:#4ecdc4; font-weight:700; margin-bottom:4px;">Eat Food</div><div style="color:#aab1c7;">Grow longer and score points</div></div>
+                        <div><div style="color:#ff6666; font-weight:700; margin-bottom:4px;">Avoid Walls</div><div style="color:#aab1c7;">Stay inside the board</div></div>
+                    </div>
+                </div>
+            }
+
+            <div style="display:flex; flex-direction:column; align-items:center; gap:18px;">
+                <div style="position:relative; width:@(Settings.GridWidth * Settings.CellSize)px; height:@(Settings.GridHeight * Settings.CellSize)px; background:linear-gradient(180deg,#06070d,#0b1020); border-radius:22px; border:1px solid rgba(78,205,196,0.28); box-shadow:0 18px 55px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.03) inset; overflow:hidden;">
+                    @foreach (var seg in Engine.SnakeSegments)
+                    {
+                        <div style="position:absolute; left:@(seg.X * Settings.CellSize)px; top:@(seg.Y * Settings.CellSize)px; width:@(Settings.CellSize)px; height:@(Settings.CellSize)px; background:linear-gradient(135deg,#b7ffb7,#00c853); border:1px solid rgba(0,0,0,0.35); box-sizing:border-box; border-radius:4px;"></div>
+                    }
+
+                    @if (Engine.Food.X >= 0 && Engine.Food.Y >= 0)
+                    {
+                        var foodSize = GetFoodSize();
+                        <div style="position:absolute; left:@(Engine.Food.X * Settings.CellSize + (Settings.CellSize - foodSize) / 2)px; top:@(Engine.Food.Y * Settings.CellSize + (Settings.CellSize - foodSize) / 2)px; width:@(foodSize)px; height:@(foodSize)px; background:radial-gradient(circle at 30% 30%, #ffb3b3, #ff3d3d 70%); border-radius:50%; box-shadow:0 0 0 2px rgba(255,255,255,0.08), 0 0 18px rgba(255,61,61,0.55); z-index:5;"></div>
+                    }
+
+                    @if (_isCountdownActive)
+                    {
+                        <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(5,8,18,0.55); z-index:10;">
+                            <div style="font-size:88px; font-weight:900; color:#ffe66d; text-shadow:0 0 24px rgba(255,230,109,0.9);">@_countdownText</div>
+                        </div>
+                    }
+                </div>
+
+                @if (!_showMenuPanel && !_showGameOverPanel)
+                {
+                    <div style="display:grid; grid-template-columns:72px 72px 72px; grid-template-rows:72px 72px 72px; gap:8px; padding:14px; border-radius:22px; background:rgba(19,24,44,0.7); border:1px solid rgba(78,205,196,0.16); box-shadow:0 14px 40px rgba(0,0,0,0.18); backdrop-filter:blur(10px);">
+                        <div></div>
+                        <button type="button" @onclick="MoveUpAsync" style="border:none; border-radius:16px; background:linear-gradient(135deg,#4ecdc4,#5ef2df); color:#06101a; font-size:28px; font-weight:900; cursor:pointer; box-shadow:0 10px 24px rgba(78,205,196,0.25);">▲</button>
+                        <div></div>
+                        <button type="button" @onclick="MoveLeftAsync" style="border:none; border-radius:16px; background:linear-gradient(135deg,#4ecdc4,#5ef2df); color:#06101a; font-size:28px; font-weight:900; cursor:pointer; box-shadow:0 10px 24px rgba(78,205,196,0.25);">◀</button>
+                        <div></div>
+                        <button type="button" @onclick="MoveRightAsync" style="border:none; border-radius:16px; background:linear-gradient(135deg,#4ecdc4,#5ef2df); color:#06101a; font-size:28px; font-weight:900; cursor:pointer; box-shadow:0 10px 24px rgba(78,205,196,0.25);">▶</button>
+                        <div></div>
+                        <button type="button" @onclick="MoveDownAsync" style="border:none; border-radius:16px; background:linear-gradient(135deg,#4ecdc4,#5ef2df); color:#06101a; font-size:28px; font-weight:900; cursor:pointer; box-shadow:0 10px 24px rgba(78,205,196,0.25);">▼</button>
+                        <div></div>
+                    </div>
+                }
+            </div>
+
+            @if (!_showMenuPanel && !_showGameOverPanel)
+            {
+                <div style="display:flex; flex-direction:column; gap:14px;">
+                    <div style="padding:22px; border-radius:22px; background:rgba(19,24,44,0.7); border:1px solid rgba(255,255,255,0.06); box-shadow:0 14px 40px rgba(0,0,0,0.18); backdrop-filter:blur(10px);">
+                        <div style="font-size:12px; text-transform:uppercase; letter-spacing:1px; color:#aab1c7; margin-bottom:12px;">Game Status</div>
+                        <div style="font-size:16px; color:#fff; line-height:1.5;">@GetStatusText()</div>
+                    </div>
+
+                    <button @onclick="TogglePauseAsync"
+                            style="min-height:54px; border:none; border-radius:16px; background:@(Engine.Phase == GamePhase.Paused ? "linear-gradient(135deg,#ff6b6b,#ff8787)" : "linear-gradient(135deg,#4ecdc4,#5ef2df)"); color:@(Engine.Phase == GamePhase.Paused ? "#fff" : "#06101a"); font-size:15px; font-weight:900; letter-spacing:0.8px; text-transform:uppercase; cursor:pointer; box-shadow:0 12px 28px rgba(78,205,196,0.22);">
+                        @(Engine.Phase == GamePhase.Paused ? "▶ Resume" : "⏸ Pause")
+                    </button>
+
+                    <button @onclick="OpenMenuAsync"
+                            style="min-height:54px; border:none; border-radius:16px; background:#e0e3ea; color:#111827; font-size:15px; font-weight:900; letter-spacing:0.8px; text-transform:uppercase; cursor:pointer;">
+                        📋 Menu
+                    </button>
+                </div>
+            }
         </div>
     </div>
+</div>
+
+<style>
+    @@keyframes slideDown {
+        from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+        to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+
+    button:hover {
+        transform: translateY(-2px);
+        filter: brightness(1.04);
+    }
+
+    button:active {
+        transform: translateY(0);
+    }
+
+    select:focus {
+        box-shadow: 0 0 0 3px rgba(78,205,196,0.18);
+    }
+</style>
 
 @code {
+    private const int CountdownSeconds = 3;
+    private const int FoodPulseDurationMs = 320;
+    private const int NewHighScoreBannerMs = 2200;
+
     private ElementReference gameContainer;
     private System.Timers.Timer? _timer;
+    private System.Timers.Timer? _effectsTimer;
     private bool _disposed;
+
+    private bool _showMenuPanel = true;
+    private bool _showGameOverPanel = false;
+    private bool _showNewHighScoreBanner = false;
+    private bool _isCountdownActive = false;
+    private string _countdownText = "";
+    private int _bestScore = 0;
+    private DifficultyLevel _selectedDifficulty = DifficultyLevel.Normal;
+    private DateTime _countdownEndUtc;
+    private DateTime _foodPulseUntilUtc;
+    private DateTime _newHighScoreBannerUntilUtc;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _bestScore = HighScoreStore.LoadBestScore();
+        
+        _timer = new System.Timers.Timer(Settings.TickIntervalMs);
+        _timer.Elapsed += (_, _) => InvokeAsync(TickFrameAsync);
+        _timer.AutoReset = true;
+        
+        _effectsTimer = new System.Timers.Timer(33);
+        _effectsTimer.Elapsed += (_, _) => InvokeAsync(AdvanceEffectsAsync);
+        _effectsTimer.AutoReset = true;
+        _effectsTimer.Start();
+        
+        await Task.CompletedTask;
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -84,34 +245,57 @@
         }
     }
 
-    protected override void OnInitialized()
+    private async Task StartGameAsync()
     {
-        base.OnInitialized();
-        _timer = new System.Timers.Timer(Settings.TickIntervalMs);
-        _timer.Elapsed += (_, _) => InvokeAsync(async () => { Engine.Tick(); await InvokeAsync(StateHasChanged); });
-        _timer.AutoReset = true;
-        _timer.Start();
+        _showMenuPanel = false;
+        _showGameOverPanel = false;
+        _timer!.Interval = GetTickInterval(_selectedDifficulty);
+        Engine.StartGame();
+        BeginCountdown();
+        StateHasChanged();
+        await FocusPlayfieldAsync();
     }
 
-    private async Task StartAsync()
+    private async Task RestartGameAsync()
     {
-        Engine.StartGame();
-        await FocusPlayfieldAsync();
+        _showGameOverPanel = false;
+        _timer!.Interval = GetTickInterval(_selectedDifficulty);
+        Engine.RestartGame();
+        BeginCountdown();
         StateHasChanged();
+        await FocusPlayfieldAsync();
     }
 
     private async Task TogglePauseAsync()
     {
         Engine.TogglePause();
-        await FocusPlayfieldAsync();
+        SyncTimerForPhase();
         StateHasChanged();
+        await FocusPlayfieldAsync();
     }
 
-    private async Task RestartAsync()
+    private async Task OpenMenuAsync()
     {
-        Engine.RestartGame();
-        await FocusPlayfieldAsync();
+        _timer!.Stop();
+        _isCountdownActive = false;
+        _showMenuPanel = true;
+        _showGameOverPanel = false;
         StateHasChanged();
+        await FocusPlayfieldAsync();
+    }
+
+    private async Task ResumeFromMenuAsync()
+    {
+        _showMenuPanel = false;
+
+        if (Engine.Phase == GamePhase.Paused)
+        {
+            Engine.TogglePause();
+            SyncTimerForPhase();
+            StateHasChanged();
+            await FocusPlayfieldAsync();
+            return;
+        }
     }
 
     private async Task MoveUpAsync()
@@ -149,6 +333,20 @@
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
     {
+        if (_showMenuPanel)
+        {
+            if (e.Key == "Enter")
+            {
+                await StartGameAsync();
+            }
+            return;
+        }
+
+        if (_isCountdownActive)
+        {
+            return;
+        }
+
         switch (e.Key)
         {
             case "ArrowUp":
@@ -164,20 +362,165 @@
                 Engine.ChangeDirection(global::SnakeGame.Direction.Right);
                 break;
             case " ":
-                Engine.TogglePause();
+                if (Engine.Phase != GamePhase.GameOver)
+                {
+                    Engine.TogglePause();
+                    SyncTimerForPhase();
+                }
+                else
+                {
+                    await RestartGameAsync();
+                }
+                break;
+            case "r":
+            case "R":
+                if (Engine.Phase == GamePhase.GameOver)
+                {
+                    await RestartGameAsync();
+                }
                 break;
         }
 
         await InvokeAsync(StateHasChanged);
     }
 
+    private void HandleDifficultyChange(ChangeEventArgs e)
+    {
+        if (Enum.TryParse<DifficultyLevel>(e.Value?.ToString(), out var difficulty))
+        {
+            _selectedDifficulty = difficulty;
+        }
+    }
+
+    private async Task TickFrameAsync()
+    {
+        if (_disposed) return;
+
+        var previousScore = Engine.Score;
+        Engine.Tick();
+
+        if (Engine.Score > previousScore)
+        {
+            _foodPulseUntilUtc = DateTime.UtcNow.AddMilliseconds(FoodPulseDurationMs);
+        }
+
+        if (Engine.Score > _bestScore)
+        {
+            _bestScore = Engine.Score;
+            HighScoreStore.SaveBestScore(_bestScore);
+            _newHighScoreBannerUntilUtc = DateTime.UtcNow.AddMilliseconds(NewHighScoreBannerMs);
+        }
+
+        if (Engine.Phase == GamePhase.GameOver)
+        {
+            _timer!.Stop();
+            _showGameOverPanel = true;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task AdvanceEffectsAsync()
+    {
+        if (_disposed) return;
+
+        var now = DateTime.UtcNow;
+        var hasChanged = false;
+
+        if (_isCountdownActive)
+        {
+            var previousCountdownText = _countdownText;
+            var secondsLeft = (int)Math.Ceiling((_countdownEndUtc - now).TotalSeconds);
+            if (secondsLeft >= 1)
+            {
+                _countdownText = secondsLeft.ToString();
+                if (_countdownText != previousCountdownText)
+                {
+                    hasChanged = true;
+                }
+            }
+            else if (secondsLeft <= 0)
+            {
+                _isCountdownActive = false;
+                _countdownText = "";
+                _timer!.Start();
+                hasChanged = true;
+            }
+        }
+
+        if (now >= _newHighScoreBannerUntilUtc && _showNewHighScoreBanner)
+        {
+            _showNewHighScoreBanner = false;
+            hasChanged = true;
+        }
+        else if (now < _newHighScoreBannerUntilUtc)
+        {
+            _showNewHighScoreBanner = true;
+            hasChanged = true;
+        }
+
+        if (hasChanged)
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void BeginCountdown()
+    {
+        _isCountdownActive = true;
+        _countdownEndUtc = DateTime.UtcNow.AddSeconds(CountdownSeconds);
+        _countdownText = CountdownSeconds.ToString();
+        _timer!.Stop();
+    }
+
+    private void SyncTimerForPhase()
+    {
+        if (Engine.Phase == GamePhase.Paused)
+        {
+            _timer!.Stop();
+        }
+        else if (Engine.Phase == GamePhase.Running)
+        {
+            _timer!.Start();
+        }
+    }
+
+    private int GetTickInterval(DifficultyLevel difficulty) => difficulty switch
+    {
+        DifficultyLevel.Easy => 120,
+        DifficultyLevel.Normal => 100,
+        DifficultyLevel.Hard => 80,
+        _ => 100
+    };
+
+    private int GetFoodSize()
+    {
+        var now = DateTime.UtcNow;
+        var pulseFactor = GetFoodPulseFactor(now);
+        var minSize = (int)(Settings.CellSize * 0.5);
+        var maxSize = (int)(Settings.CellSize * 0.85);
+        var size = minSize + (int)((maxSize - minSize) * (0.5 + pulseFactor * 0.5));
+        return Math.Max(minSize, size);
+    }
+
+    private double GetFoodPulseFactor(DateTime now)
+    {
+        if (now >= _foodPulseUntilUtc)
+        {
+            return 0;
+        }
+
+        var elapsed = (now - (_foodPulseUntilUtc - TimeSpan.FromMilliseconds(FoodPulseDurationMs))).TotalMilliseconds;
+        return Math.Sin(elapsed / FoodPulseDurationMs * Math.PI);
+    }
+
     private string GetStatusText() => Engine.Phase switch
     {
-        global::SnakeGame.GamePhase.NotStarted => "Press Start to begin",
-        global::SnakeGame.GamePhase.Running => "Running",
-        global::SnakeGame.GamePhase.Paused => "Paused",
-        global::SnakeGame.GamePhase.GameOver => $"Game Over! Final Score: {Engine.Score}",
-        _ => "Unknown"
+        global::SnakeGame.GamePhase.NotStarted => "🎮 Ready to play",
+        global::SnakeGame.GamePhase.Running => "🚀 Game Running",
+        global::SnakeGame.GamePhase.Paused => "⏸ Paused - Press Resume",
+        global::SnakeGame.GamePhase.GameOver => "💀 Game Over",
+        _ => "❓ Unknown"
     };
 
     async ValueTask IAsyncDisposable.DisposeAsync()
@@ -189,6 +532,11 @@
             {
                 _timer.Stop();
                 _timer.Dispose();
+            }
+            if (_effectsTimer is not null)
+            {
+                _effectsTimer.Stop();
+                _effectsTimer.Dispose();
             }
 
             await Task.CompletedTask;
