@@ -270,7 +270,6 @@
         _timer!.Interval = GetTickInterval(_selectedDifficulty);
         Engine.StartGame();
         BeginCountdown();
-        StateHasChanged();
         await FocusPlayfieldAsync();
     }
 
@@ -280,7 +279,6 @@
         _timer!.Interval = GetTickInterval(_selectedDifficulty);
         Engine.RestartGame();
         BeginCountdown();
-        StateHasChanged();
         await FocusPlayfieldAsync();
     }
 
@@ -288,7 +286,6 @@
     {
         Engine.TogglePause();
         SyncTimerForPhase();
-        StateHasChanged();
         await FocusPlayfieldAsync();
     }
 
@@ -298,7 +295,6 @@
         _isCountdownActive = false;
         _showMenuPanel = true;
         _showGameOverPanel = false;
-        StateHasChanged();
         await FocusPlayfieldAsync();
     }
 
@@ -310,7 +306,6 @@
         {
             Engine.TogglePause();
             SyncTimerForPhase();
-            StateHasChanged();
             await FocusPlayfieldAsync();
             return;
         }
@@ -320,28 +315,24 @@
     {
         Engine.ChangeDirection(global::SnakeGame.Direction.Up);
         await FocusPlayfieldAsync();
-        StateHasChanged();
     }
 
     private async Task MoveDownAsync()
     {
         Engine.ChangeDirection(global::SnakeGame.Direction.Down);
         await FocusPlayfieldAsync();
-        StateHasChanged();
     }
 
     private async Task MoveLeftAsync()
     {
         Engine.ChangeDirection(global::SnakeGame.Direction.Left);
         await FocusPlayfieldAsync();
-        StateHasChanged();
     }
 
     private async Task MoveRightAsync()
     {
         Engine.ChangeDirection(global::SnakeGame.Direction.Right);
         await FocusPlayfieldAsync();
-        StateHasChanged();
     }
 
     private async Task FocusPlayfieldAsync()
