@@ -117,4 +117,86 @@ public sealed class SnakeGameEngineTests
 
         Assert.Equal(GamePhase.GameOver, engine.Phase);
     }
+
+    [Fact]
+    public void ChangeDirection_TwoQuickTurnsInSingleTick_ExecuteAcrossConsecutiveTicks()
+    {
+        var engine = CreateEngine();
+        engine.StartGame();
+
+        var start = engine.SnakeSegments.First();
+        engine.ChangeDirection(Direction.Up);
+        engine.ChangeDirection(Direction.Left);
+
+        engine.Tick();
+        var afterFirstTick = engine.SnakeSegments.First();
+        Assert.Equal(start.X, afterFirstTick.X);
+        Assert.Equal(start.Y - 1, afterFirstTick.Y);
+
+        engine.Tick();
+        var afterSecondTick = engine.SnakeSegments.First();
+        Assert.Equal(start.X - 1, afterSecondTick.X);
+        Assert.Equal(start.Y - 1, afterSecondTick.Y);
+    }
+
+    [Fact]
+    public void ChangeDirection_DuplicateDirectionInputs_DoNotBlockSubsequentTurn()
+    {
+        var engine = CreateEngine();
+        engine.StartGame();
+
+        var start = engine.SnakeSegments.First();
+        engine.ChangeDirection(Direction.Up);
+        engine.ChangeDirection(Direction.Up);
+        engine.ChangeDirection(Direction.Left);
+
+        engine.Tick();
+        var afterFirstTick = engine.SnakeSegments.First();
+        Assert.Equal(start.X, afterFirstTick.X);
+        Assert.Equal(start.Y - 1, afterFirstTick.Y);
+
+        engine.Tick();
+        var afterSecondTick = engine.SnakeSegments.First();
+        Assert.Equal(start.X - 1, afterSecondTick.X);
+        Assert.Equal(start.Y - 1, afterSecondTick.Y);
+    }
+
+    [Fact]
+    public void ChangeDirection_OppositeOfQueuedDirection_IsIgnored()
+    {
+        var engine = CreateEngine();
+        engine.StartGame();
+
+        var start = engine.SnakeSegments.First();
+        engine.ChangeDirection(Direction.Up);
+        engine.ChangeDirection(Direction.Down);
+
+        engine.Tick();
+        var afterFirstTick = engine.SnakeSegments.First();
+        Assert.Equal(start.X, afterFirstTick.X);
+        Assert.Equal(start.Y - 1, afterFirstTick.Y);
+
+        engine.Tick();
+        var afterSecondTick = engine.SnakeSegments.First();
+        Assert.Equal(start.X, afterSecondTick.X);
+        Assert.Equal(start.Y - 2, afterSecondTick.Y);
+    }
+
+    [Fact]
+    public void ChangeDirection_WhenPaused_IsIgnored()
+    {
+        var engine = CreateEngine();
+        engine.StartGame();
+        engine.TogglePause();
+
+        engine.ChangeDirection(Direction.Up);
+        engine.TogglePause();
+
+        var before = engine.SnakeSegments.First();
+        engine.Tick();
+        var after = engine.SnakeSegments.First();
+
+        Assert.Equal(before.X + 1, after.X);
+        Assert.Equal(before.Y, after.Y);
+    }
 }

@@ -2,13 +2,16 @@ namespace SnakeGame;
 
 public sealed class SnakeGameEngine(GameSettings settings, IFoodSpawner foodSpawner) : ISnakeGameEngine
 {
+    private const int MaxQueuedDirections = 2;
+
     private readonly GameSettings _settings = settings;
     private readonly IFoodSpawner _foodSpawner = foodSpawner;
     private readonly LinkedList<GridPoint> _snake = new();
     private readonly HashSet<GridPoint> _occupied = new();
+    private readonly Queue<Direction> _directionQueue = new(MaxQueuedDirections);
 
     private Direction _direction = Direction.Right;
-    private Direction _pendingDirection = Direction.Right;
+    private Direction _lastQueuedDirection = Direction.Right;
 
     public int Score { get; private set; }
     public GamePhase Phase { get; private set; } = GamePhase.NotStarted;
@@ -47,12 +50,24 @@ public sealed class SnakeGameEngine(GameSettings settings, IFoodSpawner foodSpaw
 
     public void ChangeDirection(Direction direction)
     {
-        if (IsOpposite(direction, _direction))
+        if (Phase != GamePhase.Running)
         {
             return;
         }
 
-        _pendingDirection = direction;
+        var referenceDirection = _directionQueue.Count > 0 ? _lastQueuedDirection : _direction;
+        if (direction == referenceDirection || IsOpposite(direction, referenceDirection))
+        {
+            return;
+        }
+
+        if (_directionQueue.Count >= MaxQueuedDirections)
+        {
+            return;
+        }
+
+        _directionQueue.Enqueue(direction);
+        _lastQueuedDirection = direction;
     }
 
     public void Tick()
@@ -62,7 +77,10 @@ public sealed class SnakeGameEngine(GameSettings settings, IFoodSpawner foodSpaw
             return;
         }
 
-        _direction = _pendingDirection;
+        if (_directionQueue.TryDequeue(out var nextDirection))
+        {
+            _direction = nextDirection;
+        }
 
         var head = _snake.First!.Value;
         var newHead = Move(head, _direction);
@@ -114,8 +132,9 @@ public sealed class SnakeGameEngine(GameSettings settings, IFoodSpawner foodSpaw
         _snake.AddFirst(start);
         _occupied.Add(start);
 
+        _directionQueue.Clear();
         _direction = Direction.Right;
-        _pendingDirection = Direction.Right;
+        _lastQueuedDirection = Direction.Right;
         Score = 0;
         Food = _foodSpawner.Spawn(_settings.GridWidth, _settings.GridHeight, _occupied);
     }

@@ -1,11 +1,14 @@
 ﻿@using SnakeGame
 @using Microsoft.AspNetCore.Components.Web
+@using Microsoft.JSInterop
 @inject ISnakeGameEngine Engine
 @inject GameSettings Settings
 @inject IHighScoreStore HighScoreStore
+@inject BrowserPreferencesStore PreferencesStore
+@inject IJSRuntime JS
 @implements IAsyncDisposable
 
-<div @ref="gameContainer" tabindex="0" @onkeydown="HandleKeyDown" @onkeydown:preventDefault="true" @onkeydown:stopPropagation="true"
+<div @ref="gameContainer" tabindex="0"
     style="min-height:100vh; box-sizing:border-box; padding:clamp(12px, 2vw, 24px); font-family:'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; background:radial-gradient(circle at top, rgba(78,205,196,0.12), transparent 34%), radial-gradient(circle at bottom right, rgba(255,230,109,0.08), transparent 28%), linear-gradient(135deg, #0f0f1e 0%, #121225 45%, #1a1a2e 100%); color:#fff; outline:none; display:flex; flex-direction:column; gap:20px; overflow:hidden;">
 
     @if (_showNewHighScoreBanner)
@@ -22,11 +25,11 @@
                 <div style="font-size:48px; margin-bottom:10px;">🐍</div>
                 <h2 style="margin:0 0 22px; font-size:32px; color:#ffe66d; letter-spacing:0.3px;">Snake Game</h2>
                 <div style="text-align:left; margin-bottom:16px; color:#bfc5d8; font-size:12px; text-transform:uppercase; letter-spacing:1px; font-weight:700;">Difficulty</div>
-                <select @onchange="HandleDifficultyChange"
+                <select value="@_selectedDifficulty" @onchange="HandleDifficultyChangeAsync"
                         style="width:100%; padding:14px 16px; margin-bottom:22px; border-radius:14px; border:1px solid rgba(78,205,196,0.55); background:#0f1427; color:#fff; font-size:15px; outline:none;">
-                    <option value="Easy">🟢 Easy</option>
-                    <option value="Normal" selected>🟡 Normal</option>
-                    <option value="Hard">🔴 Hard</option>
+                    <option value="@DifficultyLevel.Easy">🟢 Easy</option>
+                    <option value="@DifficultyLevel.Normal">🟡 Normal</option>
+                    <option value="@DifficultyLevel.Hard">🔴 Hard</option>
                 </select>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:24px;">
                     <div style="padding:16px; border-radius:16px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06);">
@@ -42,7 +45,7 @@
                     }
                 </div>
                 <label style="display:flex; align-items:center; gap:10px; justify-content:center; margin:0 0 18px; color:#d8deee; font-size:14px; cursor:pointer;">
-                    <input type="checkbox" checked="@_showArrowControls" @onchange="HandleArrowControlsChange" style="width:18px; height:18px; accent-color:#4ecdc4;" />
+                    <input type="checkbox" checked="@_showArrowControls" @onchange="HandleArrowControlsChangeAsync" style="width:18px; height:18px; accent-color:#4ecdc4;" />
                     Show arrow controls
                 </label>
                 <button @onclick="StartGameAsync"
@@ -116,9 +119,10 @@
                         <span>📱</span> How to Play
                     </div>
                     <div style="display:grid; gap:14px; color:#d8deee; font-size:13px; line-height:1.45;">
-                        <div><div style="color:#4ecdc4; font-weight:700; margin-bottom:4px;">Arrow Keys / D-Pad</div><div style="color:#aab1c7;">Move snake around the board</div></div>
-                        <div><div style="color:#4ecdc4; font-weight:700; margin-bottom:4px;">Space Bar</div><div style="color:#aab1c7;">Pause or resume the game</div></div>
-                        <div><div style="color:#4ecdc4; font-weight:700; margin-bottom:4px;">Eat Food</div><div style="color:#aab1c7;">Grow longer and score points</div></div>
+                        <div><div style="color:#4ecdc4; font-weight:700; margin-bottom:4px;">Arrow Keys / WASD / D-Pad</div><div style="color:#aab1c7;">Move snake around the board</div></div>
+                        <div><div style="color:#4ecdc4; font-weight:700; margin-bottom:4px;">Space / P</div><div style="color:#aab1c7;">Pause or resume the game</div></div>
+                        <div><div style="color:#4ecdc4; font-weight:700; margin-bottom:4px;">Esc</div><div style="color:#aab1c7;">Pause and open the menu</div></div>
+                        <div><div style="color:#4ecdc4; font-weight:700; margin-bottom:4px;">Enter / R</div><div style="color:#aab1c7;">Start or restart after game over</div></div>
                         <div><div style="color:#ff6666; font-weight:700; margin-bottom:4px;">Avoid Walls</div><div style="color:#aab1c7;">Stay inside the board</div></div>
                     </div>
                 </div>
@@ -225,6 +229,8 @@
     private ElementReference gameContainer;
     private System.Timers.Timer? _timer;
     private System.Timers.Timer? _effectsTimer;
+    private IJSObjectReference? _interopModule;
+    private DotNetObjectReference<Game>? _dotNetRef;
     private bool _disposed;
 
     private bool _showMenuPanel = true;
@@ -232,6 +238,7 @@
     private bool _showNewHighScoreBanner = false;
     private bool _isCountdownActive = false;
     private bool _showArrowControls = false;
+    private bool _wasAutoPaused = false;
     private string _countdownText = "";
     private int _bestScore = 0;
     private DifficultyLevel _selectedDifficulty = DifficultyLevel.Normal;
@@ -241,24 +248,41 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _bestScore = HighScoreStore.LoadBestScore();
-        
-        _timer = new System.Timers.Timer(Settings.TickIntervalMs);
+        _bestScore = HighScoreStore is BrowserHighScoreStore browserStore
+            ? await browserStore.LoadBestScoreAsync()
+            : HighScoreStore.LoadBestScore();
+
+        var preferences = await PreferencesStore.LoadAsync();
+        _selectedDifficulty = preferences.Difficulty;
+        _showArrowControls = preferences.ShowArrowControls;
+
+        _timer = new System.Timers.Timer(GetTickInterval(_selectedDifficulty));
         _timer.Elapsed += (_, _) => InvokeAsync(TickFrameAsync);
         _timer.AutoReset = true;
-        
+
         _effectsTimer = new System.Timers.Timer(33);
         _effectsTimer.Elapsed += (_, _) => InvokeAsync(AdvanceEffectsAsync);
         _effectsTimer.AutoReset = true;
         _effectsTimer.Start();
-        
-        await Task.CompletedTask;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
+            _dotNetRef = DotNetObjectReference.Create(this);
+            try
+            {
+                _interopModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/gameInterop.js");
+                await _interopModule.InvokeVoidAsync("registerGameListeners", _dotNetRef);
+            }
+            catch (JSException)
+            {
+            }
+            catch (InvalidOperationException)
+            {
+            }
+
             await FocusPlayfieldAsync();
         }
     }
@@ -267,6 +291,7 @@
     {
         _showMenuPanel = false;
         _showGameOverPanel = false;
+        _wasAutoPaused = false;
         _timer!.Interval = GetTickInterval(_selectedDifficulty);
         Engine.StartGame();
         BeginCountdown();
@@ -276,6 +301,7 @@
     private async Task RestartGameAsync()
     {
         _showGameOverPanel = false;
+        _wasAutoPaused = false;
         _timer!.Interval = GetTickInterval(_selectedDifficulty);
         Engine.RestartGame();
         BeginCountdown();
@@ -284,6 +310,7 @@
 
     private async Task TogglePauseAsync()
     {
+        _wasAutoPaused = false;
         Engine.TogglePause();
         SyncTimerForPhase();
         await FocusPlayfieldAsync();
@@ -293,6 +320,12 @@
     {
         _timer!.Stop();
         _isCountdownActive = false;
+        _countdownText = "";
+        _wasAutoPaused = false;
+        if (Engine.Phase == GamePhase.Running)
+        {
+            Engine.TogglePause();
+        }
         _showMenuPanel = true;
         _showGameOverPanel = false;
         await FocusPlayfieldAsync();
@@ -301,6 +334,7 @@
     private async Task ResumeFromMenuAsync()
     {
         _showMenuPanel = false;
+        _wasAutoPaused = false;
 
         if (Engine.Phase == GamePhase.Paused)
         {
@@ -337,74 +371,139 @@
 
     private async Task FocusPlayfieldAsync()
     {
-        await gameContainer.FocusAsync();
+        try
+        {
+            await gameContainer.FocusAsync();
+        }
+        catch (JSException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
     }
 
-    private async Task HandleKeyDown(KeyboardEventArgs e)
+    [JSInvokable]
+    public async Task HandleGlobalKeyDownAsync(string key)
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         if (_showMenuPanel)
         {
-            if (e.Key == "Enter")
+            if (key == "Enter")
             {
                 await StartGameAsync();
+                StateHasChanged();
+            }
+            else if (key == "Escape" && Engine.Phase == GamePhase.Paused)
+            {
+                await ResumeFromMenuAsync();
+                StateHasChanged();
+            }
+            return;
+        }
+
+        if (_showGameOverPanel || Engine.Phase == GamePhase.GameOver)
+        {
+            if (key is "Enter" or " " or "r" or "R")
+            {
+                await RestartGameAsync();
+                StateHasChanged();
+            }
+            else if (key == "Escape")
+            {
+                await OpenMenuAsync();
+                StateHasChanged();
             }
             return;
         }
 
         if (_isCountdownActive)
         {
+            if (key == "Escape")
+            {
+                await OpenMenuAsync();
+                StateHasChanged();
+            }
             return;
         }
 
-        switch (e.Key)
+        switch (key)
         {
             case "ArrowUp":
+            case "w":
+            case "W":
                 Engine.ChangeDirection(global::SnakeGame.Direction.Up);
                 break;
             case "ArrowDown":
+            case "s":
+            case "S":
                 Engine.ChangeDirection(global::SnakeGame.Direction.Down);
                 break;
             case "ArrowLeft":
+            case "a":
+            case "A":
                 Engine.ChangeDirection(global::SnakeGame.Direction.Left);
                 break;
             case "ArrowRight":
+            case "d":
+            case "D":
                 Engine.ChangeDirection(global::SnakeGame.Direction.Right);
                 break;
             case " ":
-                if (Engine.Phase != GamePhase.GameOver)
-                {
-                    Engine.TogglePause();
-                    SyncTimerForPhase();
-                }
-                else
-                {
-                    await RestartGameAsync();
-                }
+            case "p":
+            case "P":
+                _wasAutoPaused = false;
+                Engine.TogglePause();
+                SyncTimerForPhase();
                 break;
-            case "r":
-            case "R":
-                if (Engine.Phase == GamePhase.GameOver)
-                {
-                    await RestartGameAsync();
-                }
+            case "Escape":
+                await OpenMenuAsync();
                 break;
+            default:
+                return;
         }
 
-        await InvokeAsync(StateHasChanged);
+        StateHasChanged();
     }
 
-    private void HandleDifficultyChange(ChangeEventArgs e)
+    [JSInvokable]
+    public Task HandleWindowInactiveAsync()
+    {
+        if (_disposed || _showMenuPanel || _showGameOverPanel || Engine.Phase != GamePhase.Running)
+        {
+            return Task.CompletedTask;
+        }
+
+        _isCountdownActive = false;
+        _countdownText = "";
+        _wasAutoPaused = true;
+        Engine.TogglePause();
+        SyncTimerForPhase();
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private async Task HandleDifficultyChangeAsync(ChangeEventArgs e)
     {
         if (Enum.TryParse<DifficultyLevel>(e.Value?.ToString(), out var difficulty))
         {
             _selectedDifficulty = difficulty;
+            await SavePreferencesAsync();
         }
     }
 
-    private void HandleArrowControlsChange(ChangeEventArgs e)
+    private async Task HandleArrowControlsChangeAsync(ChangeEventArgs e)
     {
         _showArrowControls = e.Value is bool enabled && enabled;
+        await SavePreferencesAsync();
     }
+
+    private ValueTask SavePreferencesAsync() =>
+        PreferencesStore.SaveAsync(new WebGamePreferences(_selectedDifficulty, _showArrowControls));
 
     private async Task TickFrameAsync()
     {
@@ -421,7 +520,14 @@
         if (Engine.Score > _bestScore)
         {
             _bestScore = Engine.Score;
-            HighScoreStore.SaveBestScore(_bestScore);
+            if (HighScoreStore is BrowserHighScoreStore browserStore)
+            {
+                await browserStore.SaveBestScoreAsync(_bestScore);
+            }
+            else
+            {
+                HighScoreStore.SaveBestScore(_bestScore);
+            }
             _newHighScoreBannerUntilUtc = DateTime.UtcNow.AddMilliseconds(NewHighScoreBannerMs);
         }
 
@@ -457,19 +563,18 @@
             {
                 _isCountdownActive = false;
                 _countdownText = "";
-                _timer!.Start();
+                if (Engine.Phase == GamePhase.Running)
+                {
+                    _timer!.Start();
+                }
                 hasChanged = true;
             }
         }
 
-        if (now >= _newHighScoreBannerUntilUtc && _showNewHighScoreBanner)
+        var shouldShowBanner = now < _newHighScoreBannerUntilUtc;
+        if (shouldShowBanner != _showNewHighScoreBanner)
         {
-            _showNewHighScoreBanner = false;
-            hasChanged = true;
-        }
-        else if (now < _newHighScoreBannerUntilUtc)
-        {
-            _showNewHighScoreBanner = true;
+            _showNewHighScoreBanner = shouldShowBanner;
             hasChanged = true;
         }
 
@@ -501,10 +606,10 @@
 
     private int GetTickInterval(DifficultyLevel difficulty) => difficulty switch
     {
-        DifficultyLevel.Easy => 120,
-        DifficultyLevel.Normal => 100,
-        DifficultyLevel.Hard => 80,
-        _ => 100
+        DifficultyLevel.Easy => 130,
+        DifficultyLevel.Normal => 95,
+        DifficultyLevel.Hard => 70,
+        _ => 95
     };
 
     private int GetFoodSize()
@@ -532,7 +637,9 @@
     {
         global::SnakeGame.GamePhase.NotStarted => "🎮 Ready to play",
         global::SnakeGame.GamePhase.Running => "🚀 Game Running",
-        global::SnakeGame.GamePhase.Paused => "⏸ Paused - Press Resume",
+        global::SnakeGame.GamePhase.Paused => _wasAutoPaused
+            ? "⏸ Auto-paused (window inactive)"
+            : "⏸ Paused - Press Space/P or Resume",
         global::SnakeGame.GamePhase.GameOver => "💀 Game Over",
         _ => "❓ Unknown"
     };
@@ -553,7 +660,22 @@
                 _effectsTimer.Dispose();
             }
 
-            await Task.CompletedTask;
+            if (_interopModule is not null)
+            {
+                try
+                {
+                    await _interopModule.InvokeVoidAsync("disposeGameListeners");
+                    await _interopModule.DisposeAsync();
+                }
+                catch (JSDisconnectedException)
+                {
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+            }
+
+            _dotNetRef?.Dispose();
         }
     }
 }

@@ -1,18 +1,76 @@
+using System.Globalization;
+using Microsoft.JSInterop;
 using SnakeGame;
 
 namespace SnakeGame.Web;
 
 /// <summary>
-/// Web-based implementation of IHighScoreStore using browser localStorage.
+/// Web-based implementation of <see cref="IHighScoreStore"/> backed by browser <c>localStorage</c>.
 /// </summary>
-public sealed class BrowserHighScoreStore : IHighScoreStore
+public sealed class BrowserHighScoreStore(IJSRuntime jsRuntime) : IHighScoreStore
 {
     private const string HighScoreKey = "snake-game-best-score";
-    private static int? _cachedBestScore;
+    private readonly IJSRuntime _jsRuntime = jsRuntime;
+    private int? _cachedBestScore;
 
     public int LoadBestScore()
     {
-        // Return cached value if available (avoids repeated JS interop calls)
+        if (_cachedBestScore.HasValue)
+        {
+            return _cachedBestScore.Value;
+        }
+
+        if (_jsRuntime is IJSInProcessRuntime inProcessJs)
+        {
+            try
+            {
+                var raw = inProcessJs.Invoke<string?>("localStorage.getItem", HighScoreKey);
+                if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) && parsed >= 0)
+                {
+                    _cachedBestScore = parsed;
+                    return parsed;
+                }
+            }
+            catch (JSException)
+            {
+                // Storage may be unavailable in restricted/private browser contexts.
+            }
+            catch (InvalidOperationException)
+            {
+                // JS interop not available yet.
+            }
+        }
+
+        return _cachedBestScore ?? 0;
+    }
+
+    public void SaveBestScore(int score)
+    {
+        var normalized = Math.Max(0, score);
+        _cachedBestScore = normalized;
+
+        if (_jsRuntime is IJSInProcessRuntime inProcessJs)
+        {
+            try
+            {
+                inProcessJs.InvokeVoid(
+                    "localStorage.setItem",
+                    HighScoreKey,
+                    normalized.ToString(CultureInfo.InvariantCulture));
+            }
+            catch (JSException)
+            {
+                // Keep in-memory fallback if browser blocks storage writes.
+            }
+            catch (InvalidOperationException)
+            {
+                // JS interop not available yet.
+            }
+        }
+    }
+
+    public async ValueTask<int> LoadBestScoreAsync()
+    {
         if (_cachedBestScore.HasValue)
         {
             return _cachedBestScore.Value;
@@ -20,21 +78,40 @@ public sealed class BrowserHighScoreStore : IHighScoreStore
 
         try
         {
-            // In WASM, we don't have access to localStorage directly from C#
-            // We'll use the cached value approach and rely on SaveBestScore for persistence
-            // The browser will persist the value through the component's state
-            return 0; // Default to 0, actual persistence handled at component level
+            var raw = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", HighScoreKey);
+            if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) && parsed >= 0)
+            {
+                _cachedBestScore = parsed;
+                return parsed;
+            }
         }
-        catch
+        catch (JSException)
         {
-            return 0; // Fallback on any error
         }
+        catch (InvalidOperationException)
+        {
+        }
+
+        return _cachedBestScore ?? 0;
     }
 
-    public void SaveBestScore(int score)
+    public async ValueTask SaveBestScoreAsync(int score)
     {
-        _cachedBestScore = score;
-        // In Blazor WASM, actual localStorage persistence would be handled via JS interop
-        // For now, we cache the value in memory during the session
+        var normalized = Math.Max(0, score);
+        _cachedBestScore = normalized;
+
+        try
+        {
+            await _jsRuntime.InvokeVoidAsync(
+                "localStorage.setItem",
+                HighScoreKey,
+                normalized.ToString(CultureInfo.InvariantCulture));
+        }
+        catch (JSException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
     }
 }
